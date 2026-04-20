@@ -1,24 +1,30 @@
-import { Controller, Post, Req, Res, HttpCode, Logger } from '@nestjs/common';
+import {
+  Controller,
+  HttpCode,
+  Logger,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
-import { BotService } from './bot.service';
+import { BotService } from './services/bot.service';
 
+// TODO(phase-4): move the secret-token check behind TelegramWebhookGuard.
 @Controller()
 export class BotController {
   private readonly logger = new Logger(BotController.name);
 
-  constructor(private botService: BotService) {}
+  constructor(private readonly botService: BotService) {}
 
   @Post('bot/webhook')
   @HttpCode(200)
   async webhook(@Req() req: Request, @Res() res: Response) {
     const bot = this.botService.getBot();
-    if (!bot) {
-      return res.status(200).send('ok');
-    }
+    if (!bot) return res.status(200).send('ok');
 
-    // Verify secret token
     const secret = req.headers['x-telegram-bot-api-secret-token'];
-    if (process.env.TELEGRAM_WEBHOOK_SECRET && secret !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+    const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
+    if (expected && secret !== expected) {
       return res.status(403).send('forbidden');
     }
 

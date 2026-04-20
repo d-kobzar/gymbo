@@ -26,7 +26,7 @@ import { ProgramsModule } from '@modules/programs/programs.module';
 import { StatsModule } from '@modules/stats/stats.module';
 import { BackupModule } from '@modules/backup/backup.module';
 import { NotificationsModule } from '@modules/notifications/notifications.module';
-import { BotModule } from './bot/bot.module';
+import { BotModule } from '@modules/bot/bot.module';
 import { AiCoachModule } from '@modules/ai-coach/ai-coach.module';
 
 @Module({
