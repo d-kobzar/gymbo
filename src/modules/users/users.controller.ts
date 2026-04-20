@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/sequelize';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@shared/decorators/current-user.decorator';
 import { CoachContext } from '@modules/ai-coach/models/coach-context.model';
+import { CoachService } from '@modules/ai-coach/services/coach.service';
 import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
 import { OnboardingDto } from './dto/onboarding.dto';
 import { ProfileUpdateDto } from './dto/profile-update.dto';
@@ -25,6 +26,7 @@ export class UsersController {
     @InjectModel(BodyMeasurement)
     private readonly measurementModel: typeof BodyMeasurement,
     private readonly onboarding: OnboardingService,
+    private readonly coach: CoachService,
   ) {}
 
   @Get('me')
@@ -87,6 +89,12 @@ export class UsersController {
     @Body() dto: UpdateLanguageDto,
   ) {
     await this.userModel.update({ language: dto.language }, { where: { id: userId } });
+    return { ok: true };
+  }
+
+  @Post('refresh-context')
+  async refreshContext(@CurrentUser('id') userId: number) {
+    await this.coach.refreshContext(userId);
     return { ok: true };
   }
 }

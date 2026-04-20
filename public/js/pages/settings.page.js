@@ -35,6 +35,7 @@ export class SettingsPage extends Page {
     this.notifSlot.append(sk);
     shell.append(this.notifSlot);
 
+    shell.append(this.renderCoach());
     shell.append(this.renderTheme());
     shell.append(this.renderData());
 
@@ -107,6 +108,57 @@ export class SettingsPage extends Page {
       wrap.append(btn);
     }
     section.append(wrap);
+    return section;
+  }
+
+  renderCoach() {
+    const section = Page.section(i18n.t('settings.coach'));
+    const group = Page.el('div', { className: 'settings-group' });
+    const row = Page.el('button', { className: 'settings-row' });
+    row.type = 'button';
+    row.style.width = '100%';
+    row.style.background = 'transparent';
+    row.style.border = 'none';
+    row.style.textAlign = 'left';
+    row.style.cursor = 'pointer';
+
+    const main = Page.el('div', { className: 'settings-row__main' });
+    main.append(
+      Page.el('span', {
+        className: 'settings-row__label',
+        text: i18n.t('settings.refresh_context'),
+      }),
+      Page.el('span', {
+        className: 'settings-row__sub',
+        text: i18n.t('settings.refresh_context_sub'),
+      }),
+    );
+    row.append(
+      main,
+      Page.el('span', {
+        className: 'more-item__chevron',
+        html:
+          '<svg width="12" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+      }),
+    );
+    this.on(row, 'click', async () => {
+      if (row.hasAttribute('disabled')) return;
+      haptics.tap();
+      row.setAttribute('disabled', 'true');
+      row.style.opacity = '0.5';
+      try {
+        await api.post('/api/users/refresh-context', {});
+        haptics.success();
+        toast.show(i18n.t('toasts.context_refreshed'), { variant: 'success' });
+      } catch (err) {
+        this.handleError(err);
+      } finally {
+        row.removeAttribute('disabled');
+        row.style.opacity = '';
+      }
+    });
+    group.append(row);
+    section.append(group);
     return section;
   }
 

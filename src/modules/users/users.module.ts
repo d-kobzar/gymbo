@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
+import { AiCoachModule } from '@modules/ai-coach/ai-coach.module';
 import { CoachContext } from '@modules/ai-coach/models/coach-context.model';
 import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
 import { User } from './models/user.model';
@@ -8,7 +9,10 @@ import { UsersService } from './services/users.service';
 import { UsersController } from './users.controller';
 
 @Module({
-  imports: [SequelizeModule.forFeature([User, CoachContext, BodyMeasurement])],
+  imports: [
+    SequelizeModule.forFeature([User, CoachContext, BodyMeasurement]),
+    forwardRef(() => AiCoachModule),
+  ],
   controllers: [UsersController],
   providers: [UsersService, OnboardingService],
   exports: [UsersService, SequelizeModule],

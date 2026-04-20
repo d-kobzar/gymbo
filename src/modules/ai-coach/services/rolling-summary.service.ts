@@ -67,6 +67,14 @@ export class RollingSummaryService {
     }
   }
 
+  /** On-demand refresh triggered from the UI ("Обновить контекст"
+   * in settings). Differs from the event-driven path only in that it
+   * surfaces errors to the caller instead of swallowing them. */
+  async refresh(userId: number): Promise<void> {
+    if (!this.client) return;
+    await this.regenerate(userId);
+  }
+
   /** Cron job: delete CoachMessages whose summarizedAt is older than
    * the retention window (default 7 days). Runs once a day at 03:00
    * server time — the window is not time-sensitive, we just want to

@@ -27,6 +27,20 @@
   color: var(--text-primary);
 }
 
+.settings-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.settings-row__sub {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
 .settings-row__value {
   font-family: var(--font-mono);
   font-size: var(--text-sm);

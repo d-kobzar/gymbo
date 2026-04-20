@@ -54,7 +54,8 @@
     "exercise_updated": "Exercise updated",
     "exercise_deleted": "Exercise deleted",
     "program_saved": "Program saved",
-    "program_needs_name": "Program needs a name"
+    "program_needs_name": "Program needs a name",
+    "context_refreshed": "Coach context refreshed"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -172,7 +173,10 @@
     "measurement_reminder": "Measurement reminders",
     "weekly_summary": "Weekly summary",
     "data": "Data",
-    "edit_profile": "Edit profile"
+    "edit_profile": "Edit profile",
+    "coach": "AI coach",
+    "refresh_context": "Refresh context",
+    "refresh_context_sub": "Rebuild the coach's memory from your latest workouts, program, health notes, goals and conversation."
   },
   "more": {
     "program_sub": "Weekly split",

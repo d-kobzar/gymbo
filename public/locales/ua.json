@@ -54,7 +54,8 @@
     "exercise_updated": "Вправу оновлено",
     "exercise_deleted": "Вправу видалено",
     "program_saved": "Програму збережено",
-    "program_needs_name": "Програмі потрібна назва"
+    "program_needs_name": "Програмі потрібна назва",
+    "context_refreshed": "Контекст тренера оновлено"
   },
   "dashboard": {
     "title": "Огляд",
@@ -172,7 +173,10 @@
     "measurement_reminder": "Нагадування про заміри",
     "weekly_summary": "Тижневий підсумок",
     "data": "Дані",
-    "edit_profile": "Редагувати профіль"
+    "edit_profile": "Редагувати профіль",
+    "coach": "AI-тренер",
+    "refresh_context": "Оновити контекст",
+    "refresh_context_sub": "Перезібрати памʼять тренера з останніх тренувань, програми, нотаток про здоровʼя, цілей і переписки."
   },
   "more": {
     "program_sub": "Тижневий сплит",

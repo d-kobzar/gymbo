@@ -113,7 +113,7 @@ export class LogPage extends Page {
     const btn = Page.el('button', { className: 'log-exercise-select' });
     btn.type = 'button';
     btn.innerHTML = `
-      <span class="log-exercise-select__placeholder">
+      <span class="log-exercise-select__placeholder" data-role="name">
         ${escapeHtml(i18n.t('workout.select_exercise'))}
       </span>
       <span class="log-exercise-select__chevron" aria-hidden="true">
@@ -341,15 +341,16 @@ export class LogPage extends Page {
 
   updateExerciseButton() {
     if (!this.selectBtn) return;
-    const placeholder = /** @type {HTMLElement | null} */ (
-      this.selectBtn.querySelector('.log-exercise-select__placeholder')
+    const nameEl = /** @type {HTMLElement | null} */ (
+      this.selectBtn.querySelector('[data-role="name"]')
     );
-    if (!placeholder) return;
+    if (!nameEl) return;
     if (this.selectedExerciseName) {
-      placeholder.textContent = this.selectedExerciseName;
-      placeholder.classList.remove('log-exercise-select__placeholder');
+      nameEl.textContent = this.selectedExerciseName;
+      nameEl.classList.remove('log-exercise-select__placeholder');
     } else {
-      placeholder.textContent = i18n.t('workout.select_exercise');
+      nameEl.textContent = i18n.t('workout.select_exercise');
+      nameEl.classList.add('log-exercise-select__placeholder');
     }
   }
 

@@ -82,7 +82,7 @@ export class ProgressPage extends Page {
     const btn = Page.el('button', { className: 'log-exercise-select' });
     btn.type = 'button';
     btn.innerHTML = `
-      <span class="log-exercise-select__placeholder">${escapeHtml(
+      <span class="log-exercise-select__placeholder" data-role="name">${escapeHtml(
         i18n.t('progress.select_exercise'),
       )}</span>
       <span class="log-exercise-select__chevron" aria-hidden="true">
@@ -144,12 +144,12 @@ export class ProgressPage extends Page {
     this.exerciseId = ex.id;
     this.exerciseName = ex.name;
     if (this.selectorBtn) {
-      const placeholder = /** @type {HTMLElement | null} */ (
-        this.selectorBtn.querySelector('.log-exercise-select__placeholder')
+      const nameEl = /** @type {HTMLElement | null} */ (
+        this.selectorBtn.querySelector('[data-role="name"]')
       );
-      if (placeholder) {
-        placeholder.textContent = ex.name;
-        placeholder.classList.remove('log-exercise-select__placeholder');
+      if (nameEl) {
+        nameEl.textContent = ex.name;
+        nameEl.classList.remove('log-exercise-select__placeholder');
       }
     }
     void this.loadSeries();

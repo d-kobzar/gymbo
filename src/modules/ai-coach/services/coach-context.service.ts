@@ -116,6 +116,13 @@ export class CoachContextService {
     );
   }
 
+  async markFresh(userId: number): Promise<void> {
+    await this.contextModel.update(
+      { summaryStale: false, messagesSinceSummary: 0 },
+      { where: { userId } },
+    );
+  }
+
   async recordRunCompleted(userId: number): Promise<{ shouldRegenerate: boolean }> {
     const ctx = await this.getOrCreate(userId);
     ctx.messagesSinceSummary = (ctx.messagesSinceSummary ?? 0) + 1;
