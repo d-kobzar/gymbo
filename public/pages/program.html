@@ -1,0 +1,24 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title" data-i18n="program.title">Program</h1>
+    <p class="page-subtitle" data-i18n="program.subtitle">Plan your weekly training split.</p>
+  </div>
+
+  <!-- Version Selector -->
+  <div class="version-select">
+    <select id="program-version" class="form-select" style="flex:1">
+      <option value="" data-i18n="program.current">Current Program</option>
+    </select>
+    <button id="program-new-version" class="btn btn-outline btn-sm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span data-i18n="program.new_version">New Version</span>
+    </button>
+  </div>
+
+  <!-- Week Grid (horizontal scroll) -->
+  <div class="week-scroll" id="program-week">
+    <div class="skeleton skeleton-card" style="min-width:140px;height:160px"></div>
+    <div class="skeleton skeleton-card" style="min-width:140px;height:160px"></div>
+    <div class="skeleton skeleton-card" style="min-width:140px;height:160px"></div>
+  </div>
+</div>

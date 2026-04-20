@@ -1,0 +1,25 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title" data-i18n="progress.title">Progress</h1>
+    <p class="page-subtitle" data-i18n="progress.subtitle">Visualize your gains over time.</p>
+  </div>
+
+  <!-- Exercise Selector -->
+  <div class="form-group">
+    <select id="progress-exercise" class="form-select">
+      <option value="" data-i18n="progress.select_exercise">Select exercise</option>
+    </select>
+  </div>
+
+  <!-- Metric Chips -->
+  <div class="chips">
+    <button class="chip metric-chip active" data-metric="maxWeight" data-i18n="progress.max_weight">Max Weight</button>
+    <button class="chip metric-chip" data-metric="maxReps" data-i18n="progress.max_reps">Max Reps</button>
+    <button class="chip metric-chip" data-metric="volume" data-i18n="progress.volume">Volume</button>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-area" id="progress-chart">
+    <div class="chart-empty" data-i18n="progress.no_data">No data to display</div>
+  </div>
+</div>

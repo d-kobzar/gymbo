@@ -1,0 +1,116 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title" data-i18n="measurements.page_title">Measurements</h1>
+    <p class="page-subtitle" data-i18n="measurements.subtitle">Track your body composition.</p>
+  </div>
+
+  <!-- Collapsible Form -->
+  <div class="card mb">
+    <div class="collapsible-header open">
+      <span class="card-title" data-i18n="measurements.new_entry">New Entry</span>
+    </div>
+    <div class="collapsible-body open">
+      <form id="measurements-form">
+        <div class="form-group">
+          <label class="form-label" data-i18n="measurements.date">Date</label>
+          <input type="date" name="date" class="form-input">
+        </div>
+
+        <div class="input-row mb">
+          <div class="form-group">
+            <label class="form-label" data-i18n="measurements.weight">Weight</label>
+            <input type="number" name="weight" class="input-compact" placeholder="kg" inputmode="decimal" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="measurements.shoulders">Shoulders</label>
+            <input type="number" name="shoulders" class="input-compact" placeholder="cm" inputmode="decimal" step="0.1">
+          </div>
+        </div>
+
+        <div class="input-row mb">
+          <div class="form-group">
+            <label class="form-label" data-i18n="measurements.arm">Arm</label>
+            <input type="number" name="arm" class="input-compact" placeholder="cm" inputmode="decimal" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="measurements.chest">Chest</label>
+            <input type="number" name="chest" class="input-compact" placeholder="cm" inputmode="decimal" step="0.1">
+          </div>
+        </div>
+
+        <div class="input-row mb">
+          <div class="form-group">
+            <label class="form-label" data-i18n="measurements.waist">Waist</label>
+            <input type="number" name="waist" class="input-compact" placeholder="cm" inputmode="decimal" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="measurements.abs">Abs</label>
+            <input type="number" name="abs" class="input-compact" placeholder="cm" inputmode="decimal" step="0.1">
+          </div>
+        </div>
+
+        <div class="input-row mb">
+          <div class="form-group">
+            <label class="form-label" data-i18n="measurements.glutes">Glutes</label>
+            <input type="number" name="glutes" class="input-compact" placeholder="cm" inputmode="decimal" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="measurements.thigh">Thigh</label>
+            <input type="number" name="thigh" class="input-compact" placeholder="cm" inputmode="decimal" step="0.1">
+          </div>
+        </div>
+
+        <div class="input-row mb">
+          <div class="form-group">
+            <label class="form-label" data-i18n="measurements.calf">Calf</label>
+            <input type="number" name="calf" class="input-compact" placeholder="cm" inputmode="decimal" step="0.1">
+          </div>
+          <div class="form-group">
+            <!-- Spacer -->
+          </div>
+        </div>
+
+        <!-- Photo Upload -->
+        <div class="section-title mt" data-i18n="measurements.title">Photos</div>
+        <div class="photo-upload-grid">
+          <label class="photo-slot" onclick="this.querySelector('input').click()">
+            <span class="photo-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </span>
+            <span>Front</span>
+            <input type="file" accept="image/*" data-type="front" capture="environment">
+          </label>
+          <label class="photo-slot" onclick="this.querySelector('input').click()">
+            <span class="photo-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </span>
+            <span>Side</span>
+            <input type="file" accept="image/*" data-type="side" capture="environment">
+          </label>
+          <label class="photo-slot" onclick="this.querySelector('input').click()">
+            <span class="photo-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </span>
+            <span>Back</span>
+            <input type="file" accept="image/*" data-type="back" capture="environment">
+          </label>
+        </div>
+
+        <button type="button" id="measurements-save" class="btn btn-primary btn-block">
+          <span data-i18n="measurements.save">Save</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- History -->
+  <div class="section">
+    <div class="section-title" data-i18n="measurements.history">History</div>
+    <div class="list" id="measurements-history">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+    </div>
+  </div>
+</div>
