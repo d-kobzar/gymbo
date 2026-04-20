@@ -25,7 +25,7 @@ import { MeasurementsModule } from '@modules/measurements/measurements.module';
 import { ProgramsModule } from '@modules/programs/programs.module';
 import { StatsModule } from '@modules/stats/stats.module';
 import { BackupModule } from '@modules/backup/backup.module';
-import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationsModule } from '@modules/notifications/notifications.module';
 import { BotModule } from './bot/bot.module';
 import { AiModule } from './ai/ai.module';
 

@@ -1,43 +1,43 @@
 import {
-  Table,
+  BelongsTo,
   Column,
-  Model,
   DataType,
   ForeignKey,
-  BelongsTo,
+  Model,
+  Table,
 } from 'sequelize-typescript';
 import { User } from '@modules/users/models/user.model';
 
 @Table({ tableName: 'NotificationSettings', timestamps: true })
 export class NotificationSetting extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id: number;
+  id!: number;
 
   @ForeignKey(() => User)
   @Column({ type: DataType.INTEGER, allowNull: false, unique: true })
-  userId: number;
+  userId!: number;
 
   @BelongsTo(() => User)
-  user: User;
+  user!: User;
 
   @Column({ type: DataType.BOOLEAN, defaultValue: true })
-  trainingReminder: boolean;
+  trainingReminder!: boolean;
 
   @Column({ type: DataType.STRING(5), defaultValue: '18:00' })
-  trainingTime: string;
+  trainingTime!: string;
 
   @Column({ type: DataType.ARRAY(DataType.INTEGER), defaultValue: [1, 3, 5] })
-  trainingDays: number[];
+  trainingDays!: number[];
 
   @Column({ type: DataType.BOOLEAN, defaultValue: true })
-  measurementReminder: boolean;
+  measurementReminder!: boolean;
 
   @Column({ type: DataType.INTEGER, defaultValue: 1 })
-  measurementDay: number;
+  measurementDay!: number;
 
   @Column({ type: DataType.STRING(5), defaultValue: '09:00' })
-  measurementTime: string;
+  measurementTime!: string;
 
   @Column({ type: DataType.BOOLEAN, defaultValue: true })
-  weeklySummary: boolean;
+  weeklySummary!: boolean;
 }
