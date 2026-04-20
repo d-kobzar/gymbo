@@ -19,6 +19,7 @@ export interface SummaryRequestedPayload {
 const SUMMARY_MODEL = 'gpt-4o-mini';
 const SUMMARY_MAX_TOKENS = 300;
 const SUMMARY_TAIL_SIZE = 20;
+const REBUILD_TAIL_SIZE = 50;
 
 const SUMMARY_SYSTEM_PROMPT = `You maintain a compressed rolling NARRATIVE of a strength coaching conversation.
 
@@ -78,11 +79,15 @@ export class RollingSummaryService {
   }
 
   /** On-demand refresh triggered from the UI ("Обновить контекст"
-   * in settings). Differs from the event-driven path only in that it
-   * surfaces errors to the caller instead of swallowing them. */
+   * in settings). Unlike the event-driven incremental fold, this is a
+   * full REBUILD: the prior summary is discarded entirely (so a stale
+   * narrative referencing an obsolete program / body stat can't seep
+   * forward through paraphrase), and we compose a new paragraph from
+   * the last REBUILD_TAIL_SIZE messages regardless of summarizedAt.
+   * Surfaces errors to the caller. */
   async refresh(userId: number): Promise<void> {
     if (!this.client) return;
-    await this.regenerate(userId);
+    await this.rebuild(userId);
   }
 
   /** Cron job: delete CoachMessages whose summarizedAt is older than
@@ -120,10 +125,65 @@ export class RollingSummaryService {
 
     const previous = await this.contextService.getOrCreate(userId);
     const prior = previous.rollingSummary?.trim() ?? '';
+
+    const next = await this.compress(prior, tail);
+    if (!next) return;
+
+    const summarizedAt = new Date();
+    await this.contextService.applyRegeneratedSummary(userId, next);
+    await this.messageModel.update(
+      { summarizedAt },
+      { where: { id: { [Op.in]: tail.map((m) => m.id) } } },
+    );
+    this.logger.log(
+      `rolling-summary regenerated for userId=${userId} (${next.length} chars, ${tail.length} msgs folded)`,
+    );
+  }
+
+  private async rebuild(userId: number): Promise<void> {
+    if (!this.client) return;
+
+    // Clear first so that if compression fails we still land in a
+    // clean "no summary yet" state rather than keeping the stale one.
+    await this.contextService.applyRegeneratedSummary(userId, '');
+
+    const tail = await this.messageModel.findAll({
+      where: { userId },
+      order: [['createdAt', 'DESC']],
+      limit: REBUILD_TAIL_SIZE,
+    });
+    if (tail.length === 0) {
+      this.logger.log(`rolling-summary rebuild: no messages for userId=${userId}`);
+      return;
+    }
+    tail.reverse();
+
+    // Deliberately pass no prior — this is a full reset, we don't want
+    // the stale narrative to leak through paraphrasing.
+    const next = await this.compress('', tail);
+    if (!next) return;
+
+    const summarizedAt = new Date();
+    await this.contextService.applyRegeneratedSummary(userId, next);
+    await this.messageModel.update(
+      { summarizedAt },
+      {
+        where: {
+          id: { [Op.in]: tail.map((m) => m.id) },
+          summarizedAt: null,
+        },
+      },
+    );
+    this.logger.log(
+      `rolling-summary rebuilt for userId=${userId} (${next.length} chars, ${tail.length} msgs)`,
+    );
+  }
+
+  private async compress(prior: string, tail: CoachMessage[]): Promise<string> {
+    if (!this.client) return '';
     const tailText = tail
       .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
       .join('\n');
-
     const userPrompt = [
       'Previous summary:',
       prior || '(none yet)',
@@ -141,22 +201,6 @@ export class RollingSummaryService {
         { role: 'user', content: userPrompt },
       ],
     });
-
-    const next = completion.choices[0]?.message?.content?.trim() ?? '';
-    if (!next) return;
-
-    const summarizedAt = new Date();
-    await this.contextService.applyRegeneratedSummary(userId, next);
-    await this.messageModel.update(
-      { summarizedAt },
-      {
-        where: {
-          id: { [Op.in]: tail.map((m) => m.id) },
-        },
-      },
-    );
-    this.logger.log(
-      `rolling-summary regenerated for userId=${userId} (${next.length} chars, ${tail.length} msgs folded)`,
-    );
+    return completion.choices[0]?.message?.content?.trim() ?? '';
   }
 }
