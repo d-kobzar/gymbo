@@ -365,6 +365,12 @@ export class MeasurementsPage extends Page {
     });
     sheet.render();
 
+    // Prefill every field with the athlete's most recent value — most
+    // circumferences barely move week-over-week, so typing everything
+    // from scratch is busy-work. The placeholder still shows for
+    // fields the previous entry left blank.
+    const previous = this.history[0] ?? {};
+
     const form = Page.el('form', { className: 'measure-form' });
     form.append(this.renderDateRow());
 
@@ -395,6 +401,8 @@ export class MeasurementsPage extends Page {
         input.step = metric.step != null ? String(metric.step) : '0.5';
         input.name = metric.id;
         input.placeholder = '—';
+        const prev = previous[metric.id];
+        if (prev != null) input.value = String(Number(prev));
         inputs[metric.id] = input;
         field.append(input);
         grid.append(field);
