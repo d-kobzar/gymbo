@@ -1,9 +1,11 @@
-import { Controller, Post, Req, Res, HttpCode } from '@nestjs/common';
+import { Controller, Post, Req, Res, HttpCode, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { BotService } from './bot.service';
 
 @Controller()
 export class BotController {
+  private readonly logger = new Logger(BotController.name);
+
   constructor(private botService: BotService) {}
 
   @Post('bot/webhook')
@@ -23,7 +25,7 @@ export class BotController {
     try {
       await bot.handleUpdate(req.body);
     } catch (err) {
-      console.error('Webhook handler error:', err.message);
+      this.logger.error(`Webhook handler error: ${(err as Error).message}`);
     }
     return res.status(200).send('ok');
   }

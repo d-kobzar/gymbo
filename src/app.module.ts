@@ -1,16 +1,24 @@
 import { Module } from '@nestjs/common';
-import { SequelizeModule } from '@nestjs/sequelize';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { databaseConfig } from './config/database.config';
 
-// Core modules
+// Core infrastructure
+import { ConfigModule } from './core/config/config.module';
+import { DatabaseModule } from './core/database/database.module';
+import { LoggerModule } from './core/logger/logger.module';
+import { EventBusModule } from './core/events/event-bus.module';
+import { HealthModule } from './core/health/health.module';
+
+// Global cross-cutting
+import { AllExceptionsFilter } from './shared/filters/all-exceptions.filter';
+import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
+
+// Feature modules (unchanged this phase — moved in Phase 2)
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { I18nModule } from './i18n/i18n.module';
 import { StorageModule } from './storage/storage.module';
-
-// Feature modules
 import { ExercisesModule } from './exercises/exercises.module';
 import { TrainingLogsModule } from './training-logs/training-logs.module';
 import { MeasurementsModule } from './measurements/measurements.module';
@@ -18,15 +26,17 @@ import { ProgramsModule } from './programs/programs.module';
 import { StatsModule } from './stats/stats.module';
 import { BackupModule } from './backup/backup.module';
 import { NotificationsModule } from './notifications/notifications.module';
-
-// Bot & AI
 import { BotModule } from './bot/bot.module';
 import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
-    // Database
-    SequelizeModule.forRoot(databaseConfig),
+    // Core
+    ConfigModule,
+    LoggerModule,
+    EventBusModule,
+    DatabaseModule,
+    HealthModule,
 
     // Static files (Mini App frontend)
     ServeStaticModule.forRoot({
@@ -34,13 +44,11 @@ import { AiModule } from './ai/ai.module';
       serveRoot: '/',
     }),
 
-    // Core
+    // Domain
     I18nModule,
     StorageModule,
     AuthModule,
     UsersModule,
-
-    // Features
     ExercisesModule,
     TrainingLogsModule,
     MeasurementsModule,
@@ -48,10 +56,12 @@ import { AiModule } from './ai/ai.module';
     StatsModule,
     BackupModule,
     NotificationsModule,
-
-    // Bot & AI
     BotModule,
     AiModule,
+  ],
+  providers: [
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
   ],
 })
 export class AppModule {}

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Telegraf, Markup } from 'telegraf';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from '../users/user.model';
@@ -6,6 +6,7 @@ import { I18nService } from '../i18n/i18n.service';
 
 @Injectable()
 export class BotService {
+  private readonly logger = new Logger(BotService.name);
   private bot: Telegraf | null = null;
 
   constructor(
@@ -27,7 +28,9 @@ export class BotService {
     try {
       await this.bot.telegram.sendMessage(chatId, text, extra);
     } catch (err) {
-      console.error(`Failed to send message to ${chatId}:`, err.message);
+      this.logger.error(
+        `Failed to send message to ${chatId}: ${(err as Error).message}`,
+      );
     }
   }
 

@@ -18,8 +18,8 @@ const Api = {
         body: JSON.stringify({ initData })
       });
       if (res.ok) {
-        const data = await res.json();
-        this.token = data.token || data.access_token;
+        const body = Api._unwrap(await res.json());
+        this.token = body?.token || body?.access_token;
         if (this.token) localStorage.setItem('gymbo_token', this.token);
       } else {
         console.warn('Telegram auth failed:', res.status);
@@ -27,6 +27,17 @@ const Api = {
     } catch (e) {
       console.warn('Telegram auth failed:', e);
     }
+  },
+
+  // Unwrap the `{ data, meta }` envelope produced by the server's global
+  // TransformInterceptor. Raw responses (health, webhook, static) are
+  // returned as-is.
+  _unwrap(body) {
+    if (body && typeof body === 'object' && !Array.isArray(body)
+        && 'data' in body && 'meta' in body) {
+      return body.data;
+    }
+    return body;
   },
 
   async request(url, opts = {}, retry = true) {
@@ -53,13 +64,19 @@ const Api = {
       }
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || `Request failed: ${res.status}`);
+        const errBody = await res.json().catch(() => ({}));
+        const err = errBody && errBody.error
+          ? errBody.error
+          : { code: `HTTP_${res.status}`, message: errBody.message || `Request failed: ${res.status}` };
+        const e = new Error(err.message);
+        e.code = err.code;
+        e.details = err.details;
+        throw e;
       }
 
       const ct = res.headers.get('content-type');
       if (ct && ct.includes('application/json')) {
-        return await res.json();
+        return Api._unwrap(await res.json());
       }
       return await res.text();
     } catch (e) {

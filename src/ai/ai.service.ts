@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import OpenAI from 'openai';
 import { AiThread } from './ai-thread.model';
@@ -7,6 +7,7 @@ import { executeTool } from './tools/tool-handlers';
 
 @Injectable()
 export class AiService implements OnModuleInit {
+  private readonly logger = new Logger(AiService.name);
   private client: OpenAI | null = null;
   private assistantId: string | null = null;
 
@@ -23,7 +24,7 @@ export class AiService implements OnModuleInit {
     try {
       await this.getOrCreateAssistant();
     } catch (err: any) {
-      console.warn('Assistant sync failed:', err?.message || err);
+      this.logger.warn(`Assistant sync failed: ${err?.message || err}`);
     }
   }
 
@@ -44,7 +45,7 @@ export class AiService implements OnModuleInit {
         this.assistantId = existing.assistantId;
         return this.assistantId;
       } catch (err: any) {
-        console.warn('Assistant update failed, recreating:', err?.message || err);
+        this.logger.warn(`Assistant update failed, recreating: ${err?.message || err}`);
       }
     }
 

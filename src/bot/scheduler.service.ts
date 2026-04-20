@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as cron from 'node-cron';
 import { InjectModel } from '@nestjs/sequelize';
 import { NotificationSetting } from '../notifications/notification-setting.model';
@@ -8,6 +8,8 @@ import { I18nService } from '../i18n/i18n.service';
 
 @Injectable()
 export class SchedulerService implements OnModuleInit {
+  private readonly logger = new Logger(SchedulerService.name);
+
   constructor(
     @InjectModel(NotificationSetting) private notifModel: typeof NotificationSetting,
     @InjectModel(User) private userModel: typeof User,
@@ -17,7 +19,7 @@ export class SchedulerService implements OnModuleInit {
 
   onModuleInit() {
     if (!this.botService.getBot()) {
-      console.warn('Bot not initialized — scheduler disabled');
+      this.logger.warn('Bot not initialized — scheduler disabled');
       return;
     }
 
@@ -30,7 +32,7 @@ export class SchedulerService implements OnModuleInit {
     // Weekly summary — Sundays at 10:00 UTC
     cron.schedule('0 10 * * 0', () => this.sendWeeklySummaries());
 
-    console.log('Notification scheduler started');
+    this.logger.log('Notification scheduler started');
   }
 
   private async checkTrainingReminders() {
@@ -52,7 +54,7 @@ export class SchedulerService implements OnModuleInit {
         await this.botService.sendMessage(s.user.chatId, this.i18n.t('bot.reminderTraining', lang));
       }
     } catch (err) {
-      console.error('Training reminder error:', err.message);
+      this.logger.error(`Training reminder error: ${(err as Error).message}`);
     }
   }
 
@@ -75,7 +77,7 @@ export class SchedulerService implements OnModuleInit {
         await this.botService.sendMessage(s.user.chatId, this.i18n.t('bot.reminderMeasurement', lang));
       }
     } catch (err) {
-      console.error('Measurement reminder error:', err.message);
+      this.logger.error(`Measurement reminder error: ${(err as Error).message}`);
     }
   }
 
@@ -95,7 +97,7 @@ export class SchedulerService implements OnModuleInit {
         );
       }
     } catch (err) {
-      console.error('Weekly summary error:', err.message);
+      this.logger.error(`Weekly summary error: ${(err as Error).message}`);
     }
   }
 }

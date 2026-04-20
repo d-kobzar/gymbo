@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, OnModuleInit, Inject, forwardRef, Logger } from '@nestjs/common';
 import { BotService } from './bot.service';
 import { I18nService } from '../i18n/i18n.service';
 import { AiService } from '../ai/ai.service';
@@ -7,6 +7,8 @@ import { User } from '../users/user.model';
 
 @Injectable()
 export class BotUpdate implements OnModuleInit {
+  private readonly logger = new Logger(BotUpdate.name);
+
   constructor(
     private botService: BotService,
     private i18n: I18nService,
@@ -91,12 +93,12 @@ export class BotUpdate implements OnModuleInit {
         const reply = await this.aiService.chat(activeUser.id, ctx.message.text);
         await this.sendFormatted(ctx, reply);
       } catch (err) {
-        console.error('Bot AI error:', err.message || err);
+        this.logger.error(`Bot AI error: ${(err as Error).message || err}`);
         await ctx.reply(this.i18n.t('coach.error', lang));
       }
     });
 
-    bot.catch((err: any) => console.error('Bot error:', err.message));
+    bot.catch((err: any) => this.logger.error(`Bot error: ${err?.message ?? err}`));
 
     // Set commands
     await bot.telegram.setMyCommands([
@@ -113,13 +115,13 @@ export class BotUpdate implements OnModuleInit {
       const webhookUrl = `${process.env.APP_URL}/bot/webhook`;
       await bot.telegram.setWebhook(webhookUrl, {
         secret_token: process.env.TELEGRAM_WEBHOOK_SECRET,
-      }).catch((e) => console.warn('Webhook setup failed:', e.message));
-      console.log('Bot webhook set:', webhookUrl);
+      }).catch((e) => this.logger.warn(`Webhook setup failed: ${e.message}`));
+      this.logger.log(`Bot webhook set: ${webhookUrl}`);
     } else {
       // Clear any existing webhook, then start polling
       await bot.telegram.deleteWebhook().catch(() => {});
-      bot.launch().catch((e) => console.error('Bot launch failed:', e.message));
-      console.log('Bot started in polling mode');
+      bot.launch().catch((e) => this.logger.error(`Bot launch failed: ${e.message}`));
+      this.logger.log('Bot started in polling mode');
     }
   }
 
