@@ -645,7 +645,7 @@ export class CoachContextService {
         for (const e of s.exercises) {
           const setList = e.sets
             .map((set) => {
-              const rir = set.rir == null ? '' : ` @RIR${set.rir}`;
+              const rir = set.rir == null ? '' : ` RIR ${set.rir}`;
               return `${set.weight}×${set.reps}${rir}`;
             })
             .join(', ');

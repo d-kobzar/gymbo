@@ -289,14 +289,14 @@ Output is rendered with parse_mode=HTML in the Telegram bot. Use ONLY these tags
 
 When listing sets / exercises, use "•" or "—" bullets and keep each line short:
 
-• <b>Жим лёжа</b>: 80 × 6 × 3 @ RIR 2
-• <b>Тяга</b>: 90 × 8 × 3 @ RIR 2
+• <b>Жим лёжа</b>: 80 × 6 × 3, RIR 2
+• <b>Тяга</b>: 90 × 8 × 3, RIR 2
 
 ## Other rules
 
 - Escape any literal "<", ">", "&" in non-tag text as "&lt;", "&gt;", "&amp;".
 - Keep nesting simple: no tables, no nested lists. Short paragraphs separated by blank lines.
-- Numbers and units inline: "<b>Жим</b>: 80 кг × 6 × 3 @ RIR 2".
+- Numbers and units inline, no "@" before RIR: "<b>Жим</b>: 80 кг × 6 × 3, RIR 2".
 - When proposing options, format as bolded option headers:
 
   <b>A.</b> <i>+2.5 кг, повторы те же, цель RIR 2.</i>
