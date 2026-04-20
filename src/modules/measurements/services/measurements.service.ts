@@ -1,24 +1,24 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/sequelize';
-import { BodyMeasurement } from './body-measurement.model';
-import { MeasurementPhoto } from './measurement-photo.model';
 import { StorageService } from '@modules/storage/services/storage.service';
-
-const METRIC_WHITELIST = [
-  'weight',
-  'shoulders',
-  'arm',
-  'chest',
-  'waist',
-  'abs',
-  'glutes',
-  'thigh',
-  'calf',
-];
+import { CreateMeasurementDto } from '../dto/create-measurement.dto';
+import { ListMeasurementsDto } from '../dto/list-measurements.dto';
+import {
+  MEASUREMENT_METRICS,
+  MeasurementMetric,
+} from '../dto/progress-query.dto';
+import { UpdateMeasurementDto } from '../dto/update-measurement.dto';
+import {
+  MeasurementCreatedPayload,
+  MeasurementEvents,
+} from '../events/measurement.events';
+import { BodyMeasurement } from '../models/body-measurement.model';
+import { MeasurementPhoto } from '../models/measurement-photo.model';
 
 @Injectable()
 export class MeasurementsService {
@@ -28,15 +28,27 @@ export class MeasurementsService {
     @InjectModel(MeasurementPhoto)
     private readonly photoModel: typeof MeasurementPhoto,
     private readonly storageService: StorageService,
+    private readonly events: EventEmitter2,
   ) {}
 
-  async create(userId: number, data: Partial<BodyMeasurement>) {
-    return this.measurementModel.create({ userId, ...data });
+  async create(userId: number, data: CreateMeasurementDto): Promise<BodyMeasurement> {
+    const measurement = await this.measurementModel.create({
+      userId,
+      ...data,
+    } as Partial<BodyMeasurement>);
+
+    this.events.emit(MeasurementEvents.Created, {
+      userId,
+      measurementId: measurement.id,
+      date: data.date,
+    } satisfies MeasurementCreatedPayload);
+
+    return measurement;
   }
 
-  async findAll(userId: number, query: { page?: number; limit?: number }) {
-    const page = query.page || 1;
-    const limit = query.limit || 20;
+  async findAll(userId: number, query: ListMeasurementsDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
 
     const { rows, count } = await this.measurementModel.findAndCountAll({
       where: { userId },
@@ -55,10 +67,10 @@ export class MeasurementsService {
     };
   }
 
-  async getProgress(userId: number, metric: string) {
-    if (!METRIC_WHITELIST.includes(metric)) {
+  async getProgress(userId: number, metric: MeasurementMetric) {
+    if (!MEASUREMENT_METRICS.includes(metric)) {
       throw new BadRequestException(
-        `Invalid metric. Allowed: ${METRIC_WHITELIST.join(', ')}`,
+        `Invalid metric. Allowed: ${MEASUREMENT_METRICS.join(', ')}`,
       );
     }
 
@@ -69,17 +81,18 @@ export class MeasurementsService {
       raw: true,
     });
 
-    return measurements.filter((m) => m[metric] !== null);
+    return measurements.filter((m) => m[metric as keyof typeof m] !== null);
   }
 
-  async update(userId: number, id: number, data: Partial<BodyMeasurement>) {
-    const measurement = await this.measurementModel.findOne({
-      where: { id, userId },
-    });
-    if (!measurement) {
-      throw new NotFoundException('Measurement not found');
-    }
+  async update(
+    userId: number,
+    id: number,
+    data: UpdateMeasurementDto,
+  ): Promise<BodyMeasurement> {
+    const measurement = await this.measurementModel.findOne({ where: { id, userId } });
+    if (!measurement) throw new NotFoundException('Measurement not found');
     await measurement.update(data);
+    this.events.emit(MeasurementEvents.Updated, { userId, measurementId: id });
     return measurement;
   }
 
@@ -88,17 +101,16 @@ export class MeasurementsService {
       where: { id, userId },
       include: [{ model: MeasurementPhoto }],
     });
-    if (!measurement) {
-      throw new NotFoundException('Measurement not found');
-    }
+    if (!measurement) throw new NotFoundException('Measurement not found');
 
-    if (measurement.photos && measurement.photos.length > 0) {
-      for (const photo of measurement.photos) {
-        await this.storageService.delete(photo.s3Key);
-      }
+    if (measurement.photos?.length) {
+      await Promise.all(
+        measurement.photos.map((p) => this.storageService.delete(p.s3Key)),
+      );
     }
 
     await measurement.destroy();
+    this.events.emit(MeasurementEvents.Deleted, { userId, measurementId: id });
   }
 
   async addPhoto(
@@ -110,9 +122,7 @@ export class MeasurementsService {
     const measurement = await this.measurementModel.findOne({
       where: { id: measurementId, userId },
     });
-    if (!measurement) {
-      throw new NotFoundException('Measurement not found');
-    }
+    if (!measurement) throw new NotFoundException('Measurement not found');
 
     const s3Key = `measurements/${userId}/${measurementId}/${Date.now()}-${file.originalname}`;
     await this.storageService.upload(file.buffer, s3Key, file.mimetype);
@@ -122,7 +132,7 @@ export class MeasurementsService {
       userId,
       s3Key,
       label,
-    });
+    } as Partial<MeasurementPhoto>);
   }
 
   async exportCsv(userId: number): Promise<string> {
@@ -131,13 +141,11 @@ export class MeasurementsService {
       order: [['date', 'ASC']],
     });
 
-    const header =
-      'date,weight,shoulders,arm,chest,waist,abs,glutes,thigh,calf';
+    const header = 'date,weight,shoulders,arm,chest,waist,abs,glutes,thigh,calf';
     const rows = measurements.map(
       (m) =>
         `${m.date},${m.weight ?? ''},${m.shoulders ?? ''},${m.arm ?? ''},${m.chest ?? ''},${m.waist ?? ''},${m.abs ?? ''},${m.glutes ?? ''},${m.thigh ?? ''},${m.calf ?? ''}`,
     );
-
     return [header, ...rows].join('\n');
   }
 }

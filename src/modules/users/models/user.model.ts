@@ -1,8 +1,8 @@
 import { Column, DataType, HasMany, HasOne, Model, Table } from 'sequelize-typescript';
 import { Exercise } from '@modules/exercises/models/exercise.model';
 import { TrainingLog } from '@modules/training-logs/models/training-log.model';
-import { BodyMeasurement } from '@/measurements/body-measurement.model';
-import { MeasurementPhoto } from '@/measurements/measurement-photo.model';
+import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
+import { MeasurementPhoto } from '@modules/measurements/models/measurement-photo.model';
 import { Program } from '@/programs/program.model';
 import { NotificationSetting } from '@/notifications/notification-setting.model';
 import { AiThread } from '@/ai/ai-thread.model';

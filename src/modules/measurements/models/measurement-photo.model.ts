@@ -1,36 +1,36 @@
 import {
-  Table,
+  BelongsTo,
   Column,
-  Model,
   DataType,
   ForeignKey,
-  BelongsTo,
+  Model,
+  Table,
 } from 'sequelize-typescript';
-import { BodyMeasurement } from './body-measurement.model';
 import { User } from '@modules/users/models/user.model';
+import { BodyMeasurement } from './body-measurement.model';
 
 @Table({ tableName: 'MeasurementPhotos', timestamps: true, updatedAt: false })
 export class MeasurementPhoto extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id: number;
+  id!: number;
 
   @ForeignKey(() => BodyMeasurement)
   @Column({ type: DataType.INTEGER, allowNull: false, onDelete: 'CASCADE' })
-  measurementId: number;
+  measurementId!: number;
 
   @BelongsTo(() => BodyMeasurement)
-  measurement: BodyMeasurement;
+  measurement!: BodyMeasurement;
 
   @ForeignKey(() => User)
   @Column({ type: DataType.INTEGER, allowNull: false })
-  userId: number;
+  userId!: number;
 
   @BelongsTo(() => User)
-  user: User;
+  user!: User;
 
   @Column({ type: DataType.STRING(500), allowNull: false })
-  s3Key: string;
+  s3Key!: string;
 
   @Column({ type: DataType.STRING(50), allowNull: true })
-  label: string;
+  label!: string;
 }
