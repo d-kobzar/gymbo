@@ -22,6 +22,7 @@
 @import './components/log.css';
 @import './components/chart-card.css';
 @import './components/program.css';
+@import './components/program-editor.css';
 @import './components/measurements.css';
 @import './components/exercises-list.css';
 @import './components/settings.css';

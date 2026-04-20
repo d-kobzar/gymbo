@@ -35,6 +35,8 @@ export class ProgramPage extends Page {
     this.daysSlot.append(skeleton);
     shell.append(this.daysSlot);
 
+    shell.append(this.renderEditCta());
+
     this.root.append(shell);
     void this.load();
   }
@@ -52,6 +54,19 @@ export class ProgramPage extends Page {
       }),
     );
     return header;
+  }
+
+  renderEditCta() {
+    const btn = Page.el('button', {
+      className: 'button button--secondary button--lg button--block',
+      text: i18n.t('program.new_version'),
+    });
+    btn.type = 'button';
+    this.on(btn, 'click', () => {
+      haptics.tap();
+      globalThis.location.hash = '/program/edit';
+    });
+    return btn;
   }
 
   renderWeekStrip() {

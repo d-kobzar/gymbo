@@ -25,6 +25,7 @@ import { HomePage } from './pages/home.page.js';
 import { LogPage } from './pages/log.page.js';
 import { ProgressPage } from './pages/progress.page.js';
 import { ProgramPage } from './pages/program.page.js';
+import { ProgramEditorPage } from './pages/program-editor.page.js';
 import { MeasurementsPage } from './pages/measurements.page.js';
 import { ExercisesPage } from './pages/exercises.page.js';
 import { SettingsPage } from './pages/settings.page.js';
@@ -99,6 +100,7 @@ function mountShell() {
   router.register('/log', mountPage(LogPage));
   router.register('/progress', mountPage(ProgressPage));
   router.register('/program', mountPage(ProgramPage));
+  router.register('/program/edit', mountPage(ProgramEditorPage));
   router.register('/measurements', mountPage(MeasurementsPage));
   router.register('/exercises', mountPage(ExercisesPage));
   router.register('/settings', mountPage(SettingsPage));

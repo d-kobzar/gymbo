@@ -1,0 +1,126 @@
+/* Program editor — 7 day cards with collapsible exercise lists,
+ * rest toggle, exercise picker rows. Works alongside program.css
+ * which owns the read-only layout. */
+
+.program-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.program-editor__name {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.program-editor__day {
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.program-editor__day--rest {
+  background: transparent;
+  border: 1px dashed var(--border-default);
+}
+
+.program-editor__day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.program-editor__day-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.program-editor__day-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.program-editor__exercise {
+  display: grid;
+  grid-template-columns: 1fr 60px 40px;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.program-editor__exercise-name {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.program-editor__exercise-name--empty {
+  color: var(--text-tertiary);
+}
+
+.program-editor__sets {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  color: var(--text-primary);
+  text-align: center;
+  padding: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.program-editor__remove {
+  color: var(--danger);
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.program-editor__add-exercise {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px dashed var(--border-default);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.program-editor__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
