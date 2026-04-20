@@ -242,7 +242,16 @@ export class MeasurementsPage extends Page {
 
   /** @param {any} m @param {any} prev */
   renderHistoryRow(m, prev) {
-    const row = Page.el('article', { className: 'measure-history-row' });
+    const row = Page.el('button', { className: 'measure-history-row' });
+    row.type = 'button';
+    this.on(row, 'click', (event) => {
+      const target = /** @type {HTMLElement} */ (event.target);
+      // Photo thumbs inside the row have their own click handler —
+      // let those win rather than swallow the event at the row level.
+      if (target.closest('.measure-history-row__photo')) return;
+      haptics.tap();
+      this.openDetailSheet(m, prev);
+    });
     const [yyyy, mm, dd] = String(m.date ?? '').split('-');
     const monthLabel = new Date(`${m.date}T00:00:00`).toLocaleDateString(
       undefined,
@@ -304,6 +313,90 @@ export class MeasurementsPage extends Page {
     }
     row.append(body);
     return row;
+  }
+
+  /** @param {any} m @param {any} prev */
+  openDetailSheet(m, prev) {
+    const d = new Date(`${m.date}T00:00:00`);
+    const titleDate = Number.isNaN(d.getTime())
+      ? String(m.date ?? '')
+      : d.toLocaleDateString(undefined, {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+    const sheet = new BottomSheet(document.body, { title: titleDate });
+    sheet.render();
+
+    const body = Page.el('div', { className: 'measure-detail' });
+
+    const grid = Page.el('div', { className: 'measure-grid' });
+    for (const id of ['weight', 'waist', 'abs', 'chest', 'shoulders', 'arm', 'glutes', 'thigh', 'calf']) {
+      const value = m[id];
+      const prevValue = prev?.[id];
+      const delta =
+        value != null && prevValue != null
+          ? Number(value) - Number(prevValue)
+          : null;
+      const deltaTag =
+        delta != null && Math.abs(delta) >= 0.05
+          ? `<span class="measure-detail__delta ${delta > 0 ? 'measure-detail__delta--up' : 'measure-detail__delta--down'}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</span>`
+          : '';
+      const unit = id === 'weight' ? i18n.t('common.unit_kg') : i18n.t('common.unit_cm');
+      const tile = Page.el('div', { className: 'measure-tile' });
+      tile.innerHTML = `
+        <span class="measure-tile__label">${escapeHtml(i18n.t(`measurements.${id}`))}</span>
+        <div class="measure-detail__tile-value">
+          <span class="measure-tile__value">${value != null ? Number(value).toFixed(1) : '—'}</span>
+          <span class="measure-tile__unit">${escapeHtml(unit)}</span>
+          ${deltaTag}
+        </div>
+      `;
+      grid.append(tile);
+    }
+    body.append(grid);
+
+    const photos = Array.isArray(m.photos) ? m.photos : [];
+    const withUrl = photos.filter((p) => p?.signedUrl);
+    if (withUrl.length > 0) {
+      const photosWrap = Page.el('div', { className: 'measure-detail__photos' });
+      for (const p of withUrl) {
+        const btn = Page.el('button', { className: 'measure-detail__photo' });
+        btn.type = 'button';
+        btn.innerHTML = `
+          <img alt="${escapeHtml(p.label ?? '')}" src="${p.signedUrl}">
+          <span class="measure-detail__photo-label">${escapeHtml((p.label ?? '').toUpperCase())}</span>
+        `;
+        this.on(btn, 'click', () => {
+          sheet.close();
+          this.openLightbox(p);
+        });
+        photosWrap.append(btn);
+      }
+      body.append(photosWrap);
+    }
+
+    const deleteBtn = Page.el('button', {
+      className: 'button button--ghost button--block',
+      text: i18n.t('common.delete'),
+    });
+    deleteBtn.type = 'button';
+    this.on(deleteBtn, 'click', async () => {
+      if (!globalThis.confirm?.(i18n.t('common.delete') + '?')) return;
+      haptics.warning();
+      try {
+        await api.del(`/api/measurements/${m.id}`);
+        toast.show(i18n.t('toasts.deleted'), { variant: 'success' });
+        sheet.close();
+        await this.load();
+      } catch (err) {
+        this.handleError(err);
+      }
+    });
+    body.append(deleteBtn);
+
+    sheet.setBody(body);
+    sheet.open();
   }
 
   /** @param {{signedUrl:string, label?:string}} seed */
