@@ -1,0 +1,112 @@
+/* Program — top week strip + day cards. Rest days visually distinct
+ * (dashed border, dimmed). */
+
+.week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-2);
+}
+
+.week-strip__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  color: var(--text-secondary);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.week-strip__day--today {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.week-strip__dow {
+  font-weight: var(--weight-semibold);
+}
+
+.week-strip__date {
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  color: inherit;
+  letter-spacing: var(--tracking-normal);
+}
+
+.program-day {
+  display: grid;
+  grid-template-columns: 80px 1px 1fr;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+  min-height: 80px;
+  align-items: stretch;
+  text-align: left;
+  width: 100%;
+  border: none;
+}
+
+.program-day--rest {
+  background: transparent;
+  border: 1px dashed var(--border-default);
+  color: var(--text-secondary);
+}
+
+.program-day__col-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.program-day__dow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  letter-spacing: var(--tracking-caps);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.program-day__date {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.program-day--rest .program-day__date {
+  color: var(--text-secondary);
+}
+
+.program-day__divider {
+  width: 1px;
+  background: var(--border-subtle);
+}
+
+.program-day__col-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  overflow: hidden;
+}
+
+.program-day__name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.program-day__exercises {
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
+}

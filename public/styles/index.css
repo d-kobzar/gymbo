@@ -20,3 +20,9 @@
 @import './components/page-section.css';
 @import './components/pr-row.css';
 @import './components/log.css';
+@import './components/chart-card.css';
+@import './components/program.css';
+@import './components/measurements.css';
+@import './components/exercises-list.css';
+@import './components/settings.css';
+@import './components/more.css';

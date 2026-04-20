@@ -1,0 +1,70 @@
+/* More — menu list + footer. Per V2More: icon tile + label + subtitle
+ * + chevron for each row; tiny mono footer at the bottom. */
+
+.more-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.more-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  width: 100%;
+  border: none;
+  color: var(--text-primary);
+}
+
+.more-item__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-elevated);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.more-item__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.more-item__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.more-item__sub {
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.more-item__chevron {
+  color: var(--text-tertiary);
+}
+
+.more-footer {
+  margin-top: var(--space-9);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  letter-spacing: var(--tracking-caps-wide);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}

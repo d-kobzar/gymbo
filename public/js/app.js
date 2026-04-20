@@ -4,8 +4,8 @@
  * Boots in this order:
  *   1. Pull CSS into the bundle so Vite emits both assets together.
  *   2. Initialize Telegram WebApp (expand, haptic-ready).
- *   3. Apply `data-theme="tg"` iff Telegram sends a non-default
- *      themeParams payload, so our tokens defer to the system colors.
+ *   3. Apply the persisted theme (V2 by default; `data-theme="tg"`
+ *      only when the user explicitly opts in via Settings).
  *   4. Authenticate via Telegram initData → JWT.
  *   5. Load locales + set language from Telegram user.
  *   6. Mount the persistent shell (#page-container + #bottom-nav).
@@ -23,7 +23,12 @@ import { BottomNav } from './components/bottom-nav.js';
 
 import { HomePage } from './pages/home.page.js';
 import { LogPage } from './pages/log.page.js';
-import { PlaceholderPage } from './pages/placeholder.page.js';
+import { ProgressPage } from './pages/progress.page.js';
+import { ProgramPage } from './pages/program.page.js';
+import { MeasurementsPage } from './pages/measurements.page.js';
+import { ExercisesPage } from './pages/exercises.page.js';
+import { SettingsPage } from './pages/settings.page.js';
+import { MorePage } from './pages/more.page.js';
 
 const ICONS = {
   home:
@@ -40,7 +45,7 @@ async function boot() {
   try {
     telegram.ready();
     telegram.expand();
-    applyTelegramTheme();
+    applyPersistedTheme();
     await Promise.all([api.authenticateWithTelegram(), i18n.load()]);
     i18n.setLang(i18n.detectLang(telegram.user?.language_code));
     mountShell();
@@ -51,11 +56,23 @@ async function boot() {
   }
 }
 
-function applyTelegramTheme() {
-  const params = telegram.themeParams;
-  const hasParams = params && Object.keys(params).length > 0;
-  if (hasParams && telegram.isAvailable) {
-    document.documentElement.setAttribute('data-theme', 'tg');
+/**
+ * V2 fixed palette is the ONLY default. The Telegram theme mapping
+ * (`data-theme="tg"`) is opt-in via the Settings page — earlier
+ * auto-detection overrode our amber-on-dark system with whatever
+ * system theme the user had in Telegram (light, muted, etc.), which
+ * contradicts the design spec.
+ */
+function applyPersistedTheme() {
+  try {
+    const theme = globalThis.localStorage?.getItem('gymbo_theme');
+    if (theme === 'tg') {
+      document.documentElement.setAttribute('data-theme', 'tg');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  } catch {
+    /* storage unavailable — stick with V2 default */
   }
 }
 
@@ -80,19 +97,12 @@ function mountShell() {
   const router = new Router(pageContainer);
   router.register('/home', mountPage(HomePage));
   router.register('/log', mountPage(LogPage));
-  for (const path of [
-    '/progress',
-    '/program',
-    '/measurements',
-    '/exercises',
-    '/settings',
-    '/more',
-  ]) {
-    router.register(
-      path,
-      mountPlaceholder(path.slice(1).replace(/^./, (c) => c.toUpperCase())),
-    );
-  }
+  router.register('/progress', mountPage(ProgressPage));
+  router.register('/program', mountPage(ProgramPage));
+  router.register('/measurements', mountPage(MeasurementsPage));
+  router.register('/exercises', mountPage(ExercisesPage));
+  router.register('/settings', mountPage(SettingsPage));
+  router.register('/more', mountPage(MorePage));
   router.start();
 }
 
@@ -102,15 +112,6 @@ function mountShell() {
 function mountPage(PageCtor) {
   return (container, params) => {
     const page = new PageCtor(container, { params });
-    page.render();
-    return page;
-  };
-}
-
-/** @param {string} title */
-function mountPlaceholder(title) {
-  return (container) => {
-    const page = new PlaceholderPage(container, { title });
     page.render();
     return page;
   };
