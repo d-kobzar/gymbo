@@ -26,6 +26,7 @@ export class SettingsPage extends Page {
   render() {
     const shell = Page.el('div', { className: 'page-shell' });
     shell.append(this.renderHeader());
+    shell.append(this.renderProfile());
     shell.append(this.renderLanguage());
 
     this.notifSlot = Page.el('div');
@@ -39,6 +40,36 @@ export class SettingsPage extends Page {
 
     this.root.append(shell);
     void this.loadNotifications();
+  }
+
+  renderProfile() {
+    const section = Page.section('');
+    const group = Page.el('div', { className: 'settings-group' });
+    const row = Page.el('button', { className: 'settings-row' });
+    row.type = 'button';
+    row.style.width = '100%';
+    row.style.background = 'transparent';
+    row.style.border = 'none';
+    row.style.textAlign = 'left';
+    row.style.cursor = 'pointer';
+    row.append(
+      Page.el('span', {
+        className: 'settings-row__label',
+        text: i18n.t('settings.edit_profile'),
+      }),
+      Page.el('span', {
+        className: 'more-item__chevron',
+        html:
+          '<svg width="12" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+      }),
+    );
+    this.on(row, 'click', () => {
+      haptics.tap();
+      globalThis.location.hash = '/profile/edit';
+    });
+    group.append(row);
+    section.append(group);
+    return section;
   }
 
   renderHeader() {

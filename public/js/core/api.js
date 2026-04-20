@@ -135,6 +135,10 @@ class Api {
     });
   }
 
+  patch(path, body) {
+    return this.request(path, { method: 'PATCH', body: JSON.stringify(body ?? {}) });
+  }
+
   put(path, body) {
     return this.request(path, { method: 'PUT', body: JSON.stringify(body ?? {}) });
   }

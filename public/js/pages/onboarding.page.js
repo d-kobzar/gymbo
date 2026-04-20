@@ -69,7 +69,6 @@ export class OnboardingPage extends Page {
   }
 
   restoreDraft() {
-    const seed = /** @type {Record<string, unknown>} */ (this.props.seed ?? null);
     /** @type {any} */
     const base = {
       sex: null,
@@ -92,12 +91,48 @@ export class OnboardingPage extends Page {
       thigh: '',
       calf: '',
     };
-    if (seed) Object.assign(base, seed);
-    try {
-      const raw = globalThis.localStorage?.getItem(DRAFT_KEY);
-      if (raw) Object.assign(base, JSON.parse(raw));
-    } catch {
-      /* ignore malformed draft */
+    const seed = /** @type {any} */ (this.props.seed ?? null);
+    if (seed?.profile) {
+      base.sex = seed.profile.sex ?? null;
+      base.dateOfBirth = seed.profile.dateOfBirth ?? '';
+      base.heightCm = seed.profile.heightCm ?? '';
+      base.goal = seed.profile.goal ?? null;
+      base.experienceLevel = seed.profile.experienceLevel ?? null;
+      base.trainingDaysPerWeek = seed.profile.trainingDaysPerWeek ?? 4;
+      base.equipment = Array.isArray(seed.profile.equipment)
+        ? [...seed.profile.equipment]
+        : [];
+      base.injuries = Array.isArray(seed.profile.injuries)
+        ? [...seed.profile.injuries]
+        : [];
+      base.healthNotes = seed.profile.healthNotes ?? '';
+    }
+    if (seed?.latestMeasurement) {
+      for (const k of [
+        'weight',
+        'shoulders',
+        'arm',
+        'chest',
+        'waist',
+        'abs',
+        'glutes',
+        'thigh',
+        'calf',
+      ]) {
+        const v = seed.latestMeasurement[k];
+        if (v != null) base[k] = String(v);
+      }
+    }
+    // In edit mode we intentionally skip the localStorage draft
+    // — otherwise a stale onboarding draft would overwrite freshly
+    // loaded profile data.
+    if (!this.editMode) {
+      try {
+        const raw = globalThis.localStorage?.getItem(DRAFT_KEY);
+        if (raw) Object.assign(base, JSON.parse(raw));
+      } catch {
+        /* ignore malformed draft */
+      }
     }
     return base;
   }
@@ -189,16 +224,24 @@ export class OnboardingPage extends Page {
     if (!this.actionsSlot) return;
     this.actionsSlot.replaceChildren();
 
-    if (this.stepIdx > 0) {
+    // In edit mode first-step "Back" returns to Settings; otherwise
+    // pressing Back before step 1 is impossible (render skips it).
+    if (this.stepIdx > 0 || this.editMode) {
       const back = Page.el('button', {
         className: 'button button--ghost button--lg',
-        text: i18n.t('common.back'),
+        text: i18n.t(this.stepIdx === 0 ? 'common.cancel' : 'common.back'),
       });
       back.type = 'button';
       this.on(back, 'click', () => {
         haptics.tap();
-        this.stepIdx -= 1;
-        this.renderStep();
+        if (this.stepIdx === 0) {
+          if (this.editMode) {
+            globalThis.location.hash = '/settings';
+          }
+        } else {
+          this.stepIdx -= 1;
+          this.renderStep();
+        }
       });
       this.actionsSlot.append(back);
     }
@@ -264,6 +307,10 @@ export class OnboardingPage extends Page {
       case 3:
         return true;
       case 4:
+        // First-time flow requires a weight; in edit mode the whole
+        // measurement step is optional — users who don't want to
+        // record a fresh measurement simply leave it empty.
+        if (this.editMode) return true;
         return Number.isFinite(Number(this.draft.weight)) && Number(this.draft.weight) > 20;
       case 5:
         return true;
@@ -398,7 +445,7 @@ export class OnboardingPage extends Page {
       chips.append(chip);
     }
 
-    const addRow = Page.el('div', { className: 'grid-2' });
+    const addRow = Page.el('div', { className: 'onboarding-injury-row' });
     const input = document.createElement('input');
     input.className = 'input';
     input.type = 'text';
@@ -513,11 +560,18 @@ export class OnboardingPage extends Page {
   async submit() {
     const payload = this.buildPayload();
     try {
-      await api.post('/api/users/onboarding', payload);
-      haptics.success();
-      toast.show(i18n.t('toasts.welcome_aboard'), { variant: 'success' });
-      this.clearDraft();
-      globalThis.location.hash = '/home';
+      if (this.editMode) {
+        await api.patch('/api/users/profile', payload);
+        haptics.success();
+        toast.show(i18n.t('toasts.saved'), { variant: 'success' });
+        globalThis.location.hash = '/settings';
+      } else {
+        await api.post('/api/users/onboarding', payload);
+        haptics.success();
+        toast.show(i18n.t('toasts.welcome_aboard'), { variant: 'success' });
+        this.clearDraft();
+        globalThis.location.hash = '/home';
+      }
     } catch (err) {
       if (err instanceof NetworkError) {
         toast.show(i18n.t('toasts.network_error'), { variant: 'error' });
@@ -534,25 +588,31 @@ export class OnboardingPage extends Page {
       const n = Number(v);
       return Number.isFinite(n) ? n : undefined;
     };
-    const measurement = { weight: Number(this.draft.weight) };
-    for (const k of ['shoulders', 'arm', 'chest', 'waist', 'abs', 'glutes', 'thigh', 'calf']) {
-      const v = num(this.draft[k]);
-      if (v != null) measurement[k] = v;
+    const weight = num(this.draft.weight);
+    /** @type {Record<string, number> | undefined} */
+    let measurement;
+    if (weight != null && weight > 20) {
+      measurement = { weight };
+      for (const k of ['shoulders', 'arm', 'chest', 'waist', 'abs', 'glutes', 'thigh', 'calf']) {
+        const v = num(this.draft[k]);
+        if (v != null) measurement[k] = v;
+      }
     }
-    return {
-      profile: {
-        sex: this.draft.sex,
-        dateOfBirth: this.draft.dateOfBirth,
-        heightCm: Number(this.draft.heightCm),
-        goal: this.draft.goal,
-        experienceLevel: this.draft.experienceLevel,
-        trainingDaysPerWeek: Number(this.draft.trainingDaysPerWeek),
-        equipment: this.draft.equipment ?? [],
-        injuries: this.draft.injuries ?? [],
-        healthNotes: (this.draft.healthNotes ?? '').trim() || undefined,
-      },
-      measurement,
+    const profile = {
+      sex: this.draft.sex,
+      dateOfBirth: this.draft.dateOfBirth,
+      heightCm: Number(this.draft.heightCm),
+      goal: this.draft.goal,
+      experienceLevel: this.draft.experienceLevel,
+      trainingDaysPerWeek: Number(this.draft.trainingDaysPerWeek),
+      equipment: this.draft.equipment ?? [],
+      injuries: this.draft.injuries ?? [],
+      healthNotes: (this.draft.healthNotes ?? '').trim() || undefined,
     };
+    if (this.editMode && !measurement) {
+      return { profile };
+    }
+    return { profile, measurement };
   }
 
   // ─ Low-level helpers ─────────────────────────────────────────

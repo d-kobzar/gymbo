@@ -151,7 +151,15 @@ function mountShell() {
   router.register('/exercises', mountPage(ExercisesPage));
   router.register('/settings', mountPage(SettingsPage));
   router.register('/more', mountPage(MorePage));
+  router.register('/profile/edit', mountProfileEdit);
   router.start();
+}
+
+async function mountProfileEdit(container) {
+  const seed = await api.get('/api/users/me').catch(() => null);
+  const page = new OnboardingPage(container, { editMode: true, seed });
+  page.render();
+  return page;
 }
 
 /**

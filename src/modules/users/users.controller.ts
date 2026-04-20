@@ -1,18 +1,18 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@shared/decorators/current-user.decorator';
 import { CoachContext } from '@modules/ai-coach/models/coach-context.model';
+import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
 import { OnboardingDto } from './dto/onboarding.dto';
+import { ProfileUpdateDto } from './dto/profile-update.dto';
 import { User } from './models/user.model';
 import { OnboardingService } from './services/onboarding.service';
 
 /**
- * Public user endpoints: "me" (identity + onboarding state + coach
- * profile) and the onboarding submission.
- *
- * "me" is safe to call on every app boot and is cheap — one joined
- * fetch.
+ * Endpoints: /me (boot info), /onboarding (first-run submit),
+ * /profile (post-onboarding edits). The "me" payload powers the
+ * onboarding gate on the client and the "Edit profile" form seed.
  */
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -21,6 +21,8 @@ export class UsersController {
     @InjectModel(User) private readonly userModel: typeof User,
     @InjectModel(CoachContext)
     private readonly contextModel: typeof CoachContext,
+    @InjectModel(BodyMeasurement)
+    private readonly measurementModel: typeof BodyMeasurement,
     private readonly onboarding: OnboardingService,
   ) {}
 
@@ -28,7 +30,13 @@ export class UsersController {
   async me(@CurrentUser('id') userId: number) {
     const user = await this.userModel.findByPk(userId);
     if (!user) return { id: null };
-    const ctx = await this.contextModel.findOne({ where: { userId } });
+    const [ctx, latestMeasurement] = await Promise.all([
+      this.contextModel.findOne({ where: { userId } }),
+      this.measurementModel.findOne({
+        where: { userId },
+        order: [['date', 'DESC']],
+      }),
+    ]);
     return {
       id: user.id,
       telegramId: user.telegramId,
@@ -37,6 +45,20 @@ export class UsersController {
       timezone: user.timezone,
       onboardedAt: user.onboardedAt,
       profile: ctx?.profile ?? {},
+      latestMeasurement: latestMeasurement
+        ? {
+            date: latestMeasurement.date,
+            weight: latestMeasurement.weight,
+            shoulders: latestMeasurement.shoulders,
+            arm: latestMeasurement.arm,
+            chest: latestMeasurement.chest,
+            waist: latestMeasurement.waist,
+            abs: latestMeasurement.abs,
+            glutes: latestMeasurement.glutes,
+            thigh: latestMeasurement.thigh,
+            calf: latestMeasurement.calf,
+          }
+        : null,
     };
   }
 
@@ -46,6 +68,15 @@ export class UsersController {
     @Body() dto: OnboardingDto,
   ) {
     await this.onboarding.submit(userId, dto);
+    return { ok: true };
+  }
+
+  @Patch('profile')
+  async updateProfile(
+    @CurrentUser('id') userId: number,
+    @Body() dto: ProfileUpdateDto,
+  ) {
+    await this.onboarding.update(userId, dto);
     return { ok: true };
   }
 }
