@@ -7,7 +7,7 @@ import {
   BelongsTo,
 } from 'sequelize-typescript';
 import { User } from '@modules/users/models/user.model';
-import { Exercise } from '../exercises/exercise.model';
+import { Exercise } from '@modules/exercises/models/exercise.model';
 
 @Table({ tableName: 'TrainingLogs', timestamps: true, updatedAt: false })
 export class TrainingLog extends Model {

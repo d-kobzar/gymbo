@@ -1,6 +1,6 @@
 import { TrainingLog } from '../../training-logs/training-log.model';
 import { BodyMeasurement } from '../../measurements/body-measurement.model';
-import { Exercise } from '../../exercises/exercise.model';
+import { Exercise } from '@modules/exercises/models/exercise.model';
 import { Program } from '../../programs/program.model';
 import { ProgramDay } from '../../programs/program-day.model';
 import { ProgramExercise } from '../../programs/program-exercise.model';

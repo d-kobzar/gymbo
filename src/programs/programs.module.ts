@@ -3,7 +3,7 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { Program } from './program.model';
 import { ProgramDay } from './program-day.model';
 import { ProgramExercise } from './program-exercise.model';
-import { Exercise } from '../exercises/exercise.model';
+import { Exercise } from '@modules/exercises/models/exercise.model';
 import { ProgramsService } from './programs.service';
 import { ProgramsController } from './programs.controller';
 

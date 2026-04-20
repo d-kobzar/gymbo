@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, fn, col, literal } from 'sequelize';
 import { TrainingLog } from './training-log.model';
-import { Exercise } from '../exercises/exercise.model';
+import { Exercise } from '@modules/exercises/models/exercise.model';
 
 interface CreateLogDto {
   date: string;

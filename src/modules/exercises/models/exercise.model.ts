@@ -1,15 +1,15 @@
 import {
-  Table,
+  BelongsTo,
   Column,
-  Model,
   DataType,
   ForeignKey,
-  BelongsTo,
   HasMany,
+  Model,
+  Table,
 } from 'sequelize-typescript';
 import { User } from '@modules/users/models/user.model';
-import { TrainingLog } from '../training-logs/training-log.model';
-import { ProgramExercise } from '../programs/program-exercise.model';
+import { TrainingLog } from '@/training-logs/training-log.model';
+import { ProgramExercise } from '@/programs/program-exercise.model';
 
 @Table({
   tableName: 'Exercises',
@@ -19,21 +19,21 @@ import { ProgramExercise } from '../programs/program-exercise.model';
 })
 export class Exercise extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id: number;
+  id!: number;
 
   @ForeignKey(() => User)
   @Column({ type: DataType.INTEGER, allowNull: false })
-  userId: number;
+  userId!: number;
 
   @BelongsTo(() => User)
-  user: User;
+  user!: User;
 
   @Column({ type: DataType.STRING, allowNull: false })
-  name: string;
+  name!: string;
 
   @HasMany(() => TrainingLog)
-  trainingLogs: TrainingLog[];
+  trainingLogs!: TrainingLog[];
 
   @HasMany(() => ProgramExercise)
-  programExercises: ProgramExercise[];
+  programExercises!: ProgramExercise[];
 }

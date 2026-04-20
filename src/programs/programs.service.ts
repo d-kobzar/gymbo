@@ -5,7 +5,7 @@ import { fn, col } from 'sequelize';
 import { Program } from './program.model';
 import { ProgramDay } from './program-day.model';
 import { ProgramExercise } from './program-exercise.model';
-import { Exercise } from '../exercises/exercise.model';
+import { Exercise } from '@modules/exercises/models/exercise.model';
 
 interface CreateProgramDto {
   name: string;

@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Op, fn, col, literal } from 'sequelize';
 import { TrainingLog } from '../training-logs/training-log.model';
 import { BodyMeasurement } from '../measurements/body-measurement.model';
-import { Exercise } from '../exercises/exercise.model';
+import { Exercise } from '@modules/exercises/models/exercise.model';
 
 @Injectable()
 export class StatsService {

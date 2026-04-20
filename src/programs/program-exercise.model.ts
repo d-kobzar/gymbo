@@ -7,7 +7,7 @@ import {
   BelongsTo,
 } from 'sequelize-typescript';
 import { ProgramDay } from './program-day.model';
-import { Exercise } from '../exercises/exercise.model';
+import { Exercise } from '@modules/exercises/models/exercise.model';
 
 @Table({ tableName: 'ProgramExercises', timestamps: false })
 export class ProgramExercise extends Model {

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
-import { Exercise } from '../exercises/exercise.model';
+import { Exercise } from '@modules/exercises/models/exercise.model';
 import { TrainingLog } from '../training-logs/training-log.model';
 import { BodyMeasurement } from '../measurements/body-measurement.model';
 import { MeasurementPhoto } from '../measurements/measurement-photo.model';
