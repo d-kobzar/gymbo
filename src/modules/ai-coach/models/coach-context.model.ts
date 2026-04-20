@@ -17,6 +17,8 @@ export type CoachEquipment =
   | 'bodyweight'
   | 'cables';
 
+export type CoachSex = 'male' | 'female' | 'other';
+
 export interface CoachProfile {
   goal?: CoachGoal;
   experienceLevel?: CoachExperience;
@@ -24,6 +26,12 @@ export interface CoachProfile {
   equipment?: CoachEquipment[];
   injuries?: string[];
   preferences?: Record<string, unknown>;
+  // Added by the onboarding quiz. All optional so partial profiles
+  // still work — the coach gracefully falls back to "not set".
+  sex?: CoachSex;
+  dateOfBirth?: string; // ISO YYYY-MM-DD
+  heightCm?: number;
+  healthNotes?: string;
 }
 
 export interface CoachDecision {

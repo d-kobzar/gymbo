@@ -27,6 +27,9 @@ export class User extends Model {
   @Column({ type: DataType.STRING(50), defaultValue: 'UTC' })
   timezone!: string;
 
+  @Column({ type: DataType.DATE, allowNull: true })
+  onboardedAt!: Date | null;
+
   @HasMany(() => Exercise)
   exercises!: Exercise[];
 

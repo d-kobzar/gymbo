@@ -4,6 +4,9 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Op, col, fn, literal } from 'sequelize';
 import { Exercise } from '@modules/exercises/models/exercise.model';
 import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
+import { ProgramDay } from '@modules/programs/models/program-day.model';
+import { ProgramExercise } from '@modules/programs/models/program-exercise.model';
+import { Program } from '@modules/programs/models/program.model';
 import { TrainingLog } from '@modules/training-logs/models/training-log.model';
 import { MeasurementEvents } from '@modules/measurements/events/measurement.events';
 import { ProgramEvents } from '@modules/programs/events/program.events';
@@ -16,6 +19,17 @@ import {
 
 const DECISIONS_CAP = 20;
 const SUMMARY_REGEN_THRESHOLD = 10;
+const LAST_SESSIONS = 3;
+const DAYS_ORDER = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+];
+const SHORT_DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export interface InvalidateCoachContextEvent {
   userId: number;
@@ -28,12 +42,20 @@ export const COACH_CONTEXT_SUMMARY_REQUESTED = 'coach-context.summary-requested'
 /**
  * Owns the managed memory layer on top of OpenAI threads.
  *
- * - `getOrCreate(userId)` returns a row, creating one on first chat.
- * - `buildRunInstructions` composes a compact context block (profile
- *   + live aggregates + rolling summary + recent decisions) that is
- *   injected into the Run's `additional_instructions` — this is how
- *   the coach stays up-to-date without re-reading the whole thread.
- * - Subscribes to domain events to mark the summary stale.
+ * `buildRunInstructions` composes the block injected into every Run's
+ * `additional_instructions`:
+ *   - User profile (goal, level, equipment, injuries, sex, age,
+ *     height, weight, health notes) — from CoachContext.profile
+ *     which onboarding writes.
+ *   - Live state — sets this week, bodyweight + 7d trend,
+ *     top-5 PRs.
+ *   - Current program — name + per-day one-liner.
+ *   - Last 3 training sessions — date + exercises + totals.
+ *   - Rolling summary — compressed narrative.
+ *   - Recent decisions — last 10 by time.
+ *
+ * Subscribes to TrainingLog / Measurement / Program events so
+ * summary staleness flips the moment the athlete logs anything.
  */
 @Injectable()
 export class CoachContextService {
@@ -46,6 +68,7 @@ export class CoachContextService {
     private readonly trainingLogModel: typeof TrainingLog,
     @InjectModel(BodyMeasurement)
     private readonly measurementModel: typeof BodyMeasurement,
+    @InjectModel(Program) private readonly programModel: typeof Program,
   ) {}
 
   async getOrCreate(userId: number): Promise<CoachContext> {
@@ -108,16 +131,13 @@ export class CoachContextService {
     );
   }
 
-  /**
-   * Compose the `additional_instructions` block for the next Run.
-   * Target ≤ 500 tokens, but we don't enforce — the block is short
-   * by construction (fixed-layout lines, 5 PRs, 20 decisions max).
-   */
   async buildRunInstructions(userId: number): Promise<string> {
     const ctx = await this.getOrCreate(userId);
-    const [aggregates, topPrs] = await Promise.all([
+    const [aggregates, topPrs, program, lastSessions] = await Promise.all([
       this.liveAggregates(userId),
       this.topPrs(userId, 5),
+      this.currentProgram(userId),
+      this.lastSessions(userId, LAST_SESSIONS),
     ]);
 
     const profileLines = this.formatProfile(ctx.profile ?? {});
@@ -125,6 +145,9 @@ export class CoachContextService {
     const prLines = topPrs.length
       ? topPrs.map((p) => `  - ${p.name}: ${p.weight}×${p.reps}`).join('\n')
       : '  - (no logs yet)';
+
+    const programLines = this.formatProgram(program);
+    const sessionsLines = this.formatLastSessions(lastSessions);
 
     const today = new Date().toISOString().slice(0, 10);
     const summary = ctx.rollingSummary?.trim() ?? '';
@@ -144,6 +167,12 @@ export class CoachContextService {
       ...stateLines,
       '- Top PRs:',
       prLines,
+      '',
+      'Current program:',
+      ...programLines,
+      '',
+      `Last ${LAST_SESSIONS} sessions:`,
+      ...sessionsLines,
       '',
       'Rolling summary of past conversations:',
       summary || '(empty — this is one of the first sessions)',
@@ -233,25 +262,113 @@ export class CoachContextService {
       nest: true,
     });
     return rows.map((r) => ({
-      name: /** @type {any} */ (r as any).exercise?.name ?? `#${(r as any).exerciseId}`,
+      name: (r as any).exercise?.name ?? `#${(r as any).exerciseId}`,
       weight: Number((r as any).maxWeight ?? 0),
       reps: Number((r as any).maxReps ?? 0),
     }));
+  }
+
+  private async currentProgram(userId: number): Promise<Program | null> {
+    return this.programModel.findOne({
+      where: { userId },
+      order: [['version', 'DESC']],
+      include: [
+        {
+          model: ProgramDay,
+          include: [
+            {
+              model: ProgramExercise,
+              include: [{ model: Exercise, attributes: ['name'] }],
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  private async lastSessions(
+    userId: number,
+    count: number,
+  ): Promise<
+    Array<{
+      date: string;
+      totalSets: number;
+      totalVolume: number;
+      exercises: Array<{ name: string; sets: number; topWeight: number; topReps: number }>;
+    }>
+  > {
+    const dateRows = await this.trainingLogModel.findAll({
+      where: { userId },
+      attributes: ['date'],
+      group: ['date'],
+      order: [['date', 'DESC']],
+      limit: count,
+      raw: true,
+    });
+    const dates = dateRows
+      .map((r) => (r as any).date as string)
+      .filter(Boolean);
+    if (!dates.length) return [];
+
+    const logs = await this.trainingLogModel.findAll({
+      where: { userId, date: { [Op.in]: dates } },
+      include: [{ model: Exercise, attributes: ['name'] }],
+      order: [['date', 'DESC'], ['setNumber', 'ASC']],
+    });
+
+    const byDate = new Map<
+      string,
+      Map<string, { sets: number; topWeight: number; topReps: number; volume: number }>
+    >();
+    for (const l of logs) {
+      const date = (l as any).date as string;
+      const exName = (l as any).exercise?.name ?? `#${(l as any).exerciseId}`;
+      const weight = Number((l as any).weight ?? 0);
+      const reps = Number((l as any).reps ?? 0);
+      const byEx = byDate.get(date) ?? new Map();
+      const ex = byEx.get(exName) ?? { sets: 0, topWeight: 0, topReps: 0, volume: 0 };
+      ex.sets += 1;
+      ex.topWeight = Math.max(ex.topWeight, weight);
+      ex.topReps = Math.max(ex.topReps, reps);
+      ex.volume += weight * reps;
+      byEx.set(exName, ex);
+      byDate.set(date, byEx);
+    }
+
+    return dates.map((date) => {
+      const byEx = byDate.get(date) ?? new Map();
+      const exercises = Array.from(byEx.entries()).map(([name, v]) => ({
+        name,
+        sets: v.sets,
+        topWeight: v.topWeight,
+        topReps: v.topReps,
+      }));
+      const totalSets = exercises.reduce((s, e) => s + e.sets, 0);
+      const totalVolume = Array.from(byEx.values()).reduce((s, v) => s + v.volume, 0);
+      return { date, totalSets, totalVolume, exercises };
+    });
   }
 
   private formatProfile(profile: CoachProfile): string[] {
     const lines: string[] = [];
     lines.push(`- Goal: ${profile.goal ?? 'not set'}`);
     lines.push(`- Level: ${profile.experienceLevel ?? 'not set'}`);
-    lines.push(
-      `- Days/week: ${profile.trainingDaysPerWeek ?? 'not set'}`,
-    );
+    lines.push(`- Days/week: ${profile.trainingDaysPerWeek ?? 'not set'}`);
     lines.push(
       `- Equipment: ${(profile.equipment?.length ?? 0) > 0 ? profile.equipment!.join(', ') : 'not set'}`,
+    );
+    lines.push(`- Sex: ${profile.sex ?? 'not set'}`);
+    const age = this.ageFromDob(profile.dateOfBirth);
+    lines.push(`- Age: ${age != null ? `${age} y` : 'not set'}`);
+    lines.push(
+      `- Height: ${profile.heightCm != null ? `${profile.heightCm} cm` : 'not set'}`,
     );
     lines.push(
       `- Injuries: ${(profile.injuries?.length ?? 0) > 0 ? profile.injuries!.join('; ') : 'none reported'}`,
     );
+    if (profile.healthNotes?.trim()) {
+      lines.push(`- Health notes: ${profile.healthNotes.trim()}`);
+    }
     return lines;
   }
 
@@ -274,6 +391,62 @@ export class CoachContextService {
       lines.push('- Bodyweight: not logged');
     }
     return lines;
+  }
+
+  private formatProgram(program: Program | null): string[] {
+    if (!program) return ['  - (no program yet)'];
+    const lines: string[] = [`  - ${program.name ?? 'Program'} · v${program.version}`];
+    const days = [...(program.days ?? [])].sort((a, b) => {
+      const ai = DAYS_ORDER.indexOf((a.day ?? '').toLowerCase());
+      const bi = DAYS_ORDER.indexOf((b.day ?? '').toLowerCase());
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+    for (const day of days) {
+      const idx = DAYS_ORDER.indexOf((day.day ?? '').toLowerCase());
+      const dow = idx >= 0 ? SHORT_DOW[idx] : day.day ?? '?';
+      if (day.isRest) {
+        lines.push(`  - ${dow}: rest`);
+        continue;
+      }
+      const exs = (day.exercises ?? [])
+        .map((e) => `${e.exercise?.name ?? '?'}×${e.sets ?? '?'}`)
+        .join(', ');
+      lines.push(`  - ${dow}: ${exs || '(no exercises)'}`);
+    }
+    return lines;
+  }
+
+  private formatLastSessions(
+    sessions: Array<{
+      date: string;
+      totalSets: number;
+      totalVolume: number;
+      exercises: Array<{ name: string; sets: number; topWeight: number; topReps: number }>;
+    }>,
+  ): string[] {
+    if (!sessions.length) return ['  - (no sessions yet)'];
+    const lines: string[] = [];
+    for (const s of sessions) {
+      const summary = s.exercises
+        .map((e) => `${e.name} ${e.topWeight}×${e.topReps}×${e.sets}`)
+        .join(', ');
+      const volume = Math.round(s.totalVolume);
+      lines.push(
+        `  - ${s.date}: ${s.totalSets} sets · ${volume} kg·reps — ${summary}`,
+      );
+    }
+    return lines;
+  }
+
+  private ageFromDob(dob?: string): number | null {
+    if (!dob) return null;
+    const d = new Date(dob);
+    if (Number.isNaN(d.getTime())) return null;
+    const now = new Date();
+    let age = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age -= 1;
+    return age;
   }
 
   private weekStartIso(): string {

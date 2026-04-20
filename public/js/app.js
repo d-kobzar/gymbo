@@ -8,8 +8,11 @@
  *      only when the user explicitly opts in via Settings).
  *   4. Authenticate via Telegram initData → JWT.
  *   5. Load locales + set language from Telegram user.
- *   6. Mount the persistent shell (#page-container + #bottom-nav).
- *   7. Register routes and start the hash router.
+ *   6. Fetch /api/users/me to learn onboarding state.
+ *   7. Mount the persistent shell (#page-container + #bottom-nav).
+ *   8. If onboarded: register routes and start the hash router.
+ *      If NOT onboarded: force-render the OnboardingPage and keep
+ *      the bottom-nav hidden until completion.
  */
 
 import '../styles/index.css';
@@ -30,6 +33,7 @@ import { MeasurementsPage } from './pages/measurements.page.js';
 import { ExercisesPage } from './pages/exercises.page.js';
 import { SettingsPage } from './pages/settings.page.js';
 import { MorePage } from './pages/more.page.js';
+import { OnboardingPage } from './pages/onboarding.page.js';
 
 const ICONS = {
   home:
@@ -49,7 +53,14 @@ async function boot() {
     applyPersistedTheme();
     await Promise.all([api.authenticateWithTelegram(), i18n.load()]);
     i18n.setLang(i18n.detectLang(telegram.user?.language_code));
-    mountShell();
+
+    const me = await api.get('/api/users/me').catch(() => null);
+
+    if (!me?.onboardedAt) {
+      mountOnboarding();
+    } else {
+      mountShell();
+    }
   } catch (err) {
     // eslint-disable-next-line no-console -- critical boot failure signal
     console.error('[GymBo] boot failed', err);
@@ -57,13 +68,6 @@ async function boot() {
   }
 }
 
-/**
- * V2 fixed palette is the ONLY default. The Telegram theme mapping
- * (`data-theme="tg"`) is opt-in via the Settings page — earlier
- * auto-detection overrode our amber-on-dark system with whatever
- * system theme the user had in Telegram (light, muted, etc.), which
- * contradicts the design spec.
- */
 function applyPersistedTheme() {
   try {
     const theme = globalThis.localStorage?.getItem('gymbo_theme');
@@ -77,12 +81,35 @@ function applyPersistedTheme() {
   }
 }
 
+function mountOnboarding() {
+  const pageContainer = document.getElementById('page-container');
+  const navHost = document.getElementById('bottom-nav');
+  if (!pageContainer || !navHost) {
+    throw new Error('Shell mount points missing in index.html');
+  }
+  navHost.style.display = 'none';
+
+  const page = new OnboardingPage(pageContainer, {});
+  page.render();
+
+  // Reboot once onboarding succeeds — simplest way to pick up the
+  // now-true `onboardedAt` flag and switch to the real shell.
+  globalThis.addEventListener('hashchange', () => {
+    if (globalThis.location.hash.startsWith('#/home')) {
+      page.destroy();
+      pageContainer.replaceChildren();
+      void boot();
+    }
+  }, { once: true });
+}
+
 function mountShell() {
   const pageContainer = document.getElementById('page-container');
   const navHost = document.getElementById('bottom-nav');
   if (!pageContainer || !navHost) {
     throw new Error('Shell mount points missing in index.html');
   }
+  navHost.style.display = '';
   pageContainer.style.transition = 'opacity var(--duration-fast) var(--ease-out)';
 
   const nav = new BottomNav(navHost, {
