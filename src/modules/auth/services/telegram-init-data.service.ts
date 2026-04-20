@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
-import { UsersService } from '@modules/users/services/users.service';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { TelegramConfig } from '@core/config/telegram.config';
+
+const INIT_DATA_TTL_SEC = 24 * 60 * 60; // 24h per Telegram's recommendation
 
 export interface TelegramUser {
   id: number;
@@ -12,19 +14,26 @@ export interface TelegramUser {
   photo_url?: string;
 }
 
+/**
+ * Verifies Telegram `initData` HMAC signatures and extracts the bundled
+ * Telegram user. Kept as its own service so AuthService remains focused
+ * on login/JWT concerns.
+ */
 @Injectable()
-export class AuthService {
-  constructor(
-    private readonly jwtService: JwtService,
-    private readonly usersService: UsersService,
-  ) {}
+export class TelegramInitDataService {
+  private readonly botToken: string;
 
-  validateTelegramInitData(initData: string): TelegramUser | null {
+  constructor(config: ConfigService) {
+    this.botToken = config.getOrThrow<TelegramConfig>('telegram').botToken;
+  }
+
+  verify(initData: string): TelegramUser | null {
+    if (!initData || !this.botToken) return null;
+
     try {
       const params = new URLSearchParams(initData);
       const hash = params.get('hash');
       if (!hash) return null;
-
       params.delete('hash');
 
       const dataCheckString = Array.from(params.entries())
@@ -32,14 +41,10 @@ export class AuthService {
         .map(([key, value]) => `${key}=${value}`)
         .join('\n');
 
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      if (!botToken) return null;
-
       const secretKey = crypto
         .createHmac('sha256', 'WebAppData')
-        .update(botToken)
+        .update(this.botToken)
         .digest();
-
       const calculatedHash = crypto
         .createHmac('sha256', secretKey)
         .update(dataCheckString)
@@ -51,7 +56,7 @@ export class AuthService {
       if (authDate) {
         const authTimestamp = parseInt(authDate, 10);
         const now = Math.floor(Date.now() / 1000);
-        if (now - authTimestamp > 86400) return null;
+        if (now - authTimestamp > INIT_DATA_TTL_SEC) return null;
       }
 
       const userParam = params.get('user');
@@ -61,30 +66,5 @@ export class AuthService {
     } catch {
       return null;
     }
-  }
-
-  async loginOrRegister(
-    tgUser: TelegramUser,
-  ): Promise<{ user: any; token: string }> {
-    let user = await this.usersService.findByTelegramId(tgUser.id);
-
-    if (!user) {
-      const name = [tgUser.first_name, tgUser.last_name]
-        .filter(Boolean)
-        .join(' ');
-
-      user = await this.usersService.create({
-        telegramId: tgUser.id,
-        name,
-        language: tgUser.language_code,
-      });
-    }
-
-    const token = this.signToken(user.id);
-    return { user, token };
-  }
-
-  signToken(userId: number): string {
-    return this.jwtService.sign({ sub: userId });
   }
 }

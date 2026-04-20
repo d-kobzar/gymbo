@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { TrainingLogsService } from './training-logs.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 
 @Controller('training-logs')
 @UseGuards(JwtAuthGuard)

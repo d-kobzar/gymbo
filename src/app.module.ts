@@ -15,7 +15,7 @@ import { AllExceptionsFilter } from './shared/filters/all-exceptions.filter';
 import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
 
 // Feature modules
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from '@modules/auth/auth.module';
 import { UsersModule } from '@modules/users/users.module';
 import { I18nModule } from '@modules/i18n/i18n.module';
 import { StorageModule } from '@modules/storage/storage.module';

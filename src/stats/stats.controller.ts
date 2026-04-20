@@ -7,7 +7,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { StatsService } from './stats.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 
 @Controller('stats')
 @UseGuards(JwtAuthGuard)

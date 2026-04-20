@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { BackupService } from './backup.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 
 @Controller('backup')
 @UseGuards(JwtAuthGuard)

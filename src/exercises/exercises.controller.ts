@@ -11,7 +11,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ExercisesService } from './exercises.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 
 @Controller('exercises')
 @UseGuards(JwtAuthGuard)
