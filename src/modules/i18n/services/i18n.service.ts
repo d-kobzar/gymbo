@@ -13,8 +13,11 @@ export class I18nService implements OnModuleInit {
   private locales: Record<string, LocaleTree> = {};
 
   onModuleInit(): void {
-    // Locales sit next to this file: modules/i18n/locales/*.json.
-    const localesDir = path.join(__dirname, '..', 'locales');
+    // Single source of truth lives in public/locales/ so the bot
+    // and the Mini App agree on every string. dist/src/modules/i18n
+    // sits four levels below the repo root at runtime (dist/ ships
+    // via `nest build`). We climb out and point at public/locales.
+    const localesDir = path.resolve(__dirname, '..', '..', '..', '..', 'public', 'locales');
     for (const lang of SUPPORTED_LANGS) {
       const filePath = path.join(localesDir, `${lang}.json`);
       if (fs.existsSync(filePath)) {

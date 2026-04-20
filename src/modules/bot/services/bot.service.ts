@@ -142,18 +142,28 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   async findOrCreateUser(tgUser: TelegramFromUser): Promise<User> {
-    const lang = this.i18n.detectLang(tgUser.language_code);
-    let user = await this.userModel.findOne({ where: { telegramId: tgUser.id } });
-    if (!user) {
-      const name =
-        [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || 'User';
-      user = await this.userModel.create({
-        telegramId: tgUser.id,
-        name,
-        language: lang,
-      } as Partial<User>);
-    }
+    const { user } = await this.findOrCreateUserWithFlag(tgUser);
     return user;
+  }
+
+  /** Variant that also tells the caller whether the row was freshly
+   * created on this call. Used by /start to prompt for language the
+   * very first time a user talks to the bot. */
+  async findOrCreateUserWithFlag(
+    tgUser: TelegramFromUser,
+  ): Promise<{ user: User; created: boolean }> {
+    const existing = await this.userModel.findOne({ where: { telegramId: tgUser.id } });
+    if (existing) return { user: existing, created: false };
+
+    const name =
+      [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || 'User';
+    const lang = this.i18n.detectLang(tgUser.language_code);
+    const user = await this.userModel.create({
+      telegramId: tgUser.id,
+      name,
+      language: lang,
+    } as Partial<User>);
+    return { user, created: true };
   }
 
   private stripHtml(s: string): string {
