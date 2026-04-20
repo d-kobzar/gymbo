@@ -1,13 +1,44 @@
-/* Set row — one logged set. Circular badge + monospace data line +
- * optional PR badge. Swipe-to-delete added via JS on touch devices. */
+/* Set row — reveal-style delete: a red action panel sits behind the
+ * row; the main content slides left over it. Tap the revealed icon
+ * OR drag past the commit threshold to delete. */
 
 .set-row {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+}
+
+.set-row__delete-action {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 80px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger);
+  color: var(--text-primary);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.set-row__main {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-5);
   padding: var(--space-5) var(--space-6);
   background: var(--surface-raised);
-  border-radius: var(--radius-lg);
+  transform: translateX(var(--swipe-x, 0));
+  transition: transform var(--duration-base) var(--ease-out);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.set-row__main--dragging {
+  transition: none;
 }
 
 .set-row__badge {
@@ -56,9 +87,4 @@
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
-}
-
-.set-row--swiping {
-  transform: translateX(var(--swipe-x, 0));
-  transition: transform var(--duration-fast) var(--ease-out);
 }
