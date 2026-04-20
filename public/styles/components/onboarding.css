@@ -76,6 +76,19 @@
   min-width: 0;
 }
 
+/* Each step render returns a wrapper div; this is the ACTUAL layout
+ * parent of the labeled blocks the user sees. Without its own flex
+ * + gap the .onboarding-body gap never reaches the blocks, because
+ * all of them are grandchildren of .onboarding-body (children of
+ * this wrapper). Spent too long chasing ghost margins before
+ * noticing that. */
+.onboarding-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-11);
+  min-width: 0;
+}
+
 .onboarding-body .input-group {
   min-width: 0;
 }

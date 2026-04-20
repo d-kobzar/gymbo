@@ -322,7 +322,7 @@ export class OnboardingPage extends Page {
   // ─ Step renderers ────────────────────────────────────────────
 
   renderBasicsStep() {
-    const wrap = Page.el('div');
+    const wrap = Page.el('div', { className: 'onboarding-step' });
     wrap.append(
       this.labeledBlock(
         i18n.t('onboarding.sex'),
@@ -355,7 +355,7 @@ export class OnboardingPage extends Page {
   }
 
   renderTrainingStep() {
-    const wrap = Page.el('div');
+    const wrap = Page.el('div', { className: 'onboarding-step' });
     wrap.append(
       this.labeledBlock(
         i18n.t('onboarding.goal'),
@@ -401,7 +401,7 @@ export class OnboardingPage extends Page {
   }
 
   renderEquipmentStep() {
-    const wrap = Page.el('div');
+    const wrap = Page.el('div', { className: 'onboarding-step' });
     const chips = Page.el('div', { className: 'onboarding-chips' });
     const equipment = /** @type {string[]} */ (this.draft.equipment ?? []);
     for (const id of EQUIPMENT_IDS) {
@@ -426,7 +426,7 @@ export class OnboardingPage extends Page {
   }
 
   renderHealthStep() {
-    const wrap = Page.el('div');
+    const wrap = Page.el('div', { className: 'onboarding-step' });
     const injuries = /** @type {string[]} */ (this.draft.injuries ?? []);
 
     const chips = Page.el('div', { className: 'onboarding-chips' });
@@ -488,7 +488,7 @@ export class OnboardingPage extends Page {
   }
 
   renderMeasurementStep() {
-    const wrap = Page.el('div');
+    const wrap = Page.el('div', { className: 'onboarding-step' });
     const fields = [
       { id: 'weight', labelKey: 'weight_kg_required', required: true, step: 0.1 },
       { id: 'waist', labelKey: 'waist_cm' },
