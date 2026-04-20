@@ -69,5 +69,12 @@
 .bottom-sheet__body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 0 var(--space-7) var(--space-9);
+  min-width: 0;
+}
+
+.bottom-sheet__body > * {
+  min-width: 0;
+  max-width: 100%;
 }

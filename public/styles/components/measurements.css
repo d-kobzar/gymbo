@@ -276,10 +276,13 @@
   flex-direction: column;
   gap: var(--space-10);
   min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .measure-form > * {
   min-width: 0;
+  max-width: 100%;
 }
 
 .measure-form__group {
@@ -312,6 +315,7 @@
 
 .measure-form .input {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   min-height: 56px;
   padding: var(--space-5) var(--space-7);
@@ -321,6 +325,7 @@
   font-weight: var(--weight-extrabold);
   letter-spacing: -0.3px;
   color: var(--text-primary);
+  box-sizing: border-box;
 }
 
 .measure-form .input--numeric {
