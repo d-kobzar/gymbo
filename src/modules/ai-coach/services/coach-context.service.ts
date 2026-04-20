@@ -405,7 +405,10 @@ export class CoachContextService {
       date: string;
       totalSets: number;
       totalVolume: number;
-      exercises: Array<{ name: string; sets: number; topWeight: number; topReps: number }>;
+      exercises: Array<{
+        name: string;
+        sets: Array<{ weight: number; reps: number; rir: number | null }>;
+      }>;
     }>
   > {
     const dateRows = await this.trainingLogModel.findAll({
@@ -427,35 +430,39 @@ export class CoachContextService {
       order: [['date', 'DESC'], ['setNumber', 'ASC']],
     });
 
+    // Preserve per-set detail — topWeight×topReps×sets aggregation
+    // hides rep drop-off (12/12/8/8 looks identical to 12/12/12/12
+    // when flattened), and that's exactly the signal a coach needs
+    // to see to advise "hold" vs "add load".
     const byDate = new Map<
       string,
-      Map<string, { sets: number; topWeight: number; topReps: number; volume: number }>
+      Map<string, Array<{ weight: number; reps: number; rir: number | null }>>
     >();
     for (const l of logs) {
       const date = (l as any).date as string;
       const exName = (l as any).exercise?.name ?? `#${(l as any).exerciseId}`;
       const weight = Number((l as any).weight ?? 0);
       const reps = Number((l as any).reps ?? 0);
+      const rirRaw = (l as any).rir;
+      const rir = rirRaw == null ? null : Number(rirRaw);
       const byEx = byDate.get(date) ?? new Map();
-      const ex = byEx.get(exName) ?? { sets: 0, topWeight: 0, topReps: 0, volume: 0 };
-      ex.sets += 1;
-      ex.topWeight = Math.max(ex.topWeight, weight);
-      ex.topReps = Math.max(ex.topReps, reps);
-      ex.volume += weight * reps;
-      byEx.set(exName, ex);
+      const sets = byEx.get(exName) ?? [];
+      sets.push({ weight, reps, rir });
+      byEx.set(exName, sets);
       byDate.set(date, byEx);
     }
 
     return dates.map((date) => {
       const byEx = byDate.get(date) ?? new Map();
-      const exercises = Array.from(byEx.entries()).map(([name, v]) => ({
+      const exercises = Array.from(byEx.entries()).map(([name, sets]) => ({
         name,
-        sets: v.sets,
-        topWeight: v.topWeight,
-        topReps: v.topReps,
+        sets,
       }));
-      const totalSets = exercises.reduce((s, e) => s + e.sets, 0);
-      const totalVolume = Array.from(byEx.values()).reduce((s, v) => s + v.volume, 0);
+      const totalSets = exercises.reduce((s, e) => s + e.sets.length, 0);
+      const totalVolume = exercises.reduce(
+        (acc, e) => acc + e.sets.reduce((s, set) => s + set.weight * set.reps, 0),
+        0,
+      );
       return { date, totalSets, totalVolume, exercises };
     });
   }
@@ -618,20 +625,45 @@ export class CoachContextService {
       date: string;
       totalSets: number;
       totalVolume: number;
-      exercises: Array<{ name: string; sets: number; topWeight: number; topReps: number }>;
+      exercises: Array<{
+        name: string;
+        sets: Array<{ weight: number; reps: number; rir: number | null }>;
+      }>;
     }>,
   ): string[] {
     if (!sessions.length) return ['  - (no sessions yet)'];
     const lines: string[] = [];
-    for (const s of sessions) {
-      const summary = s.exercises
-        .map((e) => `${e.name} ${e.topWeight}×${e.topReps}×${e.sets}`)
-        .join(', ');
+    sessions.forEach((s, idx) => {
       const volume = Math.round(s.totalVolume);
-      lines.push(
-        `  - ${s.date}: ${s.totalSets} sets · ${volume} kg·reps — ${summary}`,
-      );
-    }
+      if (idx === 0) {
+        // Most recent session — full per-set breakdown so drop-offs,
+        // RIR trends, and matched-weight progression are visible.
+        lines.push(
+          `  - ${s.date} (most recent): ${s.totalSets} sets · ${volume} kg·reps`,
+        );
+        for (const e of s.exercises) {
+          const setList = e.sets
+            .map((set) => {
+              const rir = set.rir == null ? '' : ` @RIR${set.rir}`;
+              return `${set.weight}×${set.reps}${rir}`;
+            })
+            .join(', ');
+          lines.push(`    · ${e.name}: ${setList}`);
+        }
+      } else {
+        // Older sessions — compact aggregate (top weight × top reps × total sets).
+        const summary = s.exercises
+          .map((e) => {
+            const topWeight = e.sets.reduce((m, set) => Math.max(m, set.weight), 0);
+            const topReps = e.sets.reduce((m, set) => Math.max(m, set.reps), 0);
+            return `${e.name} ${topWeight}×${topReps}×${e.sets.length}`;
+          })
+          .join(', ');
+        lines.push(
+          `  - ${s.date}: ${s.totalSets} sets · ${volume} kg·reps — ${summary}`,
+        );
+      }
+    });
     return lines;
   }
 
