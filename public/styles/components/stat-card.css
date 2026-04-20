@@ -1,0 +1,64 @@
+/* Stat card — label + value (+ optional unit, trend). Used in
+ * dashboard grids. Skeleton variant rendered while value is null. */
+
+.stat-card {
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 96px;
+}
+
+.stat-card--accent {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.stat-card__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.stat-card--accent .stat-card__label {
+  color: var(--accent-contrast);
+  opacity: 0.7;
+}
+
+.stat-card__value {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card__unit {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-caps);
+  color: var(--text-secondary);
+  margin-left: var(--space-1);
+}
+
+.stat-card__trend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-caps);
+  color: var(--text-secondary);
+}
+
+.stat-card__trend--up {
+  color: var(--success);
+}
+.stat-card__trend--down {
+  color: var(--danger);
+}

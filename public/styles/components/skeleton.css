@@ -1,0 +1,53 @@
+/* Skeleton — shimmer pulse for loading states. Use whenever a data
+ * region would otherwise show an em-dash or empty string. */
+
+.skeleton {
+  display: block;
+  background: var(--surface-elevated);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--text-primary) 8%, transparent) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.4s infinite;
+}
+
+.skeleton--line {
+  height: 14px;
+  width: 60%;
+}
+
+.skeleton--line-full {
+  height: 14px;
+  width: 100%;
+}
+
+.skeleton--circle {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+}
+
+.skeleton--card {
+  height: 96px;
+  border-radius: var(--radius-lg);
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}

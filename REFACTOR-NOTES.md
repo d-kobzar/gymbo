@@ -225,3 +225,48 @@ The absence of a framework is not an excuse for messy code. Enforce:
 
 These rules are the Phase 5 / 6 acceptance criteria in addition to the
 functional ones in the spec.
+
+---
+
+## Phase 5 decisions
+
+- **Vite as a build-only tool for now.** The spec describes an HMR dev
+  server "proxied through NestJS". Wiring Vite as Express middleware is
+  doable but risks coupling the Nest bootstrap to a Vite instance that
+  we'll outgrow in Phase 6 once pages are rewritten. Current setup:
+    - `npm run build:front` / `vite build` emit a hashed CSS bundle to
+      `public/dist/`.
+    - `npm run watch:front` keeps a rebuild on file change.
+    - `npm run dev` runs `nest start:dev` and `watch:front` side by
+      side via `concurrently`.
+  Full HMR is deferred; page reload on save is acceptable for Phase 5
+  when we're not yet rendering via the new modules.
+- **Legacy shim left intact.** `public/index.html` links the new
+  `/styles/index.css` BEFORE the old `/css/style.css`. Token variables
+  become available globally, but the old screens keep rendering with
+  their existing classnames until Phase 6 swaps each page over one at
+  a time. Old `js/{app,router,api,telegram,i18n}.js` stay wired.
+- **Design tokens** match the V2 (dark energetic) variant verbatim.
+  Spacing uses a 2pt-friendly scale instead of the spec's 4pt because
+  the JSX source uses 6/10/14/18 gaps. Token names (`--space-1`..`-14`
+  + `--space-nav-clear`) keep intent readable without claiming a "4pt"
+  grid the design doesn't actually use.
+- **Google Fonts loaded from the CDN** (Archivo + JetBrains Mono) via
+  `<link rel="preconnect">` + the stylesheet URL with `display=swap`.
+  Self-hosting WOFF2 tracked as a future tighten.
+- **Component base class (`js/components/component.js`)** gives every
+  widget a shared `render()/destroy()` contract and an
+  `AbortController`-backed `on(target, type, handler)` helper so
+  listener cleanup is automatic on unmount. Codifies the event-hygiene
+  rule from the vanilla-JS cleanliness contract.
+- **`globalThis.TGCore` shim** is a one-line compatibility hook so
+  legacy scripts (still referenced by `index.html`) can reach the new
+  `telegram.js` wrapper during the Phase 5/6 overlap. Removed the
+  moment Phase 6 retires the last legacy script.
+- **CSS custom properties only, zero hex outside `tokens.css`.** Grep
+  confirms (`styles/components` + `js/components` + `js/core` → 0
+  matches for `#[0-9a-fA-F]{3,8}`).
+- **No JS entry built yet.** `vite.config.js` only declares the CSS
+  entry. The `js/core/*.js` and `js/components/*.js` modules are ESM
+  files on disk; Phase 6 will add a JS entry (`js/app.js` rewritten)
+  that imports them and compiles to `public/dist/assets/`.

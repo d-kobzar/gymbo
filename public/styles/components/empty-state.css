@@ -1,0 +1,36 @@
+/* Empty state — centered icon + heading + description + primary CTA.
+ * Used in place of raw "no data" text everywhere. */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-11) var(--space-7);
+  gap: var(--space-5);
+}
+
+.empty-state__icon {
+  width: 48px;
+  height: 48px;
+  color: var(--text-tertiary);
+}
+
+.empty-state__heading {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-snug);
+  color: var(--text-primary);
+}
+
+.empty-state__description {
+  font-size: var(--text-body);
+  color: var(--text-secondary);
+  max-width: 28ch;
+  line-height: var(--leading-normal);
+}
+
+.empty-state .button {
+  margin-top: var(--space-3);
+}

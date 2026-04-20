@@ -1,0 +1,64 @@
+/* Set row — one logged set. Circular badge + monospace data line +
+ * optional PR badge. Swipe-to-delete added via JS on touch devices. */
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+}
+
+.set-row__badge {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-extrabold);
+  background: var(--surface-elevated);
+  color: var(--text-tertiary);
+}
+
+.set-row__badge--done {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.set-row__data {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.set-row__pr {
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-caps);
+  padding: var(--space-1) var(--space-3);
+  background: var(--success);
+  color: var(--surface-base);
+  border-radius: var(--radius-xs);
+}
+
+.set-row__check {
+  color: var(--success);
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.set-row--swiping {
+  transform: translateX(var(--swipe-x, 0));
+  transition: transform var(--duration-fast) var(--ease-out);
+}

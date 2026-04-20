@@ -1,0 +1,62 @@
+/* Card — base surface container. No drop shadows; elevation via
+ * borders and background contrast only (per V2 DNA). */
+
+.card {
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.card--elevated {
+  background: var(--surface-elevated);
+}
+
+.card--hero {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-radius: var(--radius-hero);
+  padding: var(--space-8);
+  position: relative;
+  overflow: hidden;
+}
+
+.card--dashed {
+  background: transparent;
+  border: 1px dashed var(--border-default);
+}
+
+.card__kicker {
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.card__title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-snug);
+  line-height: var(--leading-snug);
+}
+
+.card__subtitle {
+  font-size: var(--text-body-sm);
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+}
+
+.card__watermark {
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+  font-size: 140px;
+  font-weight: var(--weight-black);
+  line-height: 1;
+  color: var(--accent-contrast);
+  opacity: 0.07;
+  pointer-events: none;
+  user-select: none;
+}

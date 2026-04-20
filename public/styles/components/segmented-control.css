@@ -1,0 +1,39 @@
+/* Segmented control — iOS-style selector. Active pill on amber or
+ * raised. Compact height (32px) fits inline next to headings. */
+
+.segmented-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--surface-raised);
+  border-radius: var(--radius-full);
+}
+
+.segmented-control__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-7);
+  min-height: 32px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  transition: background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.segmented-control__option--active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.segmented-control--block {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}

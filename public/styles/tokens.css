@@ -1,0 +1,142 @@
+/**
+ * GymBo design tokens — single source of truth.
+ *
+ * Values derived from the V2 (dark energetic) variant of
+ * design/src/v2-main.jsx and design/src/v2-more.jsx. The Telegram
+ * Mini App theme is honored as an opt-in via `[data-theme="tg"]`
+ * on <html> — enable only when Telegram's themeParams are non-default.
+ *
+ * Do NOT declare hex / rgb / hsl literals anywhere else. Grep for
+ * colors in js/ and styles/components/ must return zero matches.
+ */
+
+:root {
+  /* ── Surfaces ──────────────────────────────────────────────── */
+  --surface-base: #0b0b0e;
+  --surface-raised: #16171b;
+  --surface-elevated: #1e1f24;
+
+  /* ── Text ──────────────────────────────────────────────────── */
+  --text-primary: #f5f3ee;
+  --text-secondary: #8a8b93;
+  --text-tertiary: #585962;
+  --text-inverse: #0b0b0e;
+
+  /* ── Borders ───────────────────────────────────────────────── */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.2);
+
+  /* ── Accents ───────────────────────────────────────────────── */
+  --accent: #ffb020;
+  --accent-deep: #ff8a00;
+  --accent-contrast: #000000;
+  --success: #4ade80;
+  --danger: #f43f5e;
+  --info: #3b82f6;
+  --warning: #eab308;
+
+  /* ── Spacing — 2pt-friendly with a 4pt core ───────────────── */
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 14px;
+  --space-7: 16px;
+  --space-8: 18px;
+  --space-9: 20px;
+  --space-10: 24px;
+  --space-11: 30px;
+  --space-12: 40px;
+  --space-13: 48px;
+  --space-14: 64px;
+  --space-nav-clear: 80px;
+
+  /* ── Radii ─────────────────────────────────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-2xl: 18px;
+  --radius-3xl: 20px;
+  --radius-hero: 22px;
+  --radius-full: 9999px;
+  --radius-pill: 100px;
+
+  /* ── Typography ────────────────────────────────────────────── */
+  --font-sans:
+    'Archivo', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+    Roboto, Inter, system-ui, sans-serif;
+  --font-mono:
+    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --text-micro: 9px;
+  --text-xxs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-body-sm: 13px;
+  --text-body: 14px;
+  --text-base: 15px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 30px;
+  --text-3xl: 34px;
+  --text-4xl: 40px;
+  --text-display: 72px;
+
+  --leading-tight: 1.05;
+  --leading-snug: 1.2;
+  --leading-normal: 1.45;
+  --leading-relaxed: 1.6;
+
+  --tracking-tight: -1.2px;
+  --tracking-snug: -0.8px;
+  --tracking-normal: 0;
+  --tracking-caps: 1.5px;
+  --tracking-caps-wide: 2px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+  --weight-black: 900;
+
+  /* ── Motion ────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-medium: 250ms;
+  --duration-slow: 400ms;
+
+  /* ── Safe-area insets ──────────────────────────────────────── */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* ── Z-index scale ─────────────────────────────────────────── */
+  --z-nav: 40;
+  --z-sheet: 60;
+  --z-toast: 80;
+  --z-modal: 90;
+}
+
+/*
+ * Telegram theme opt-in — map surface/text/accent onto the WebApp's
+ * themeParams. Enable by setting `data-theme="tg"` on <html> at boot
+ * ONLY when `window.Telegram?.WebApp?.themeParams` are non-empty.
+ */
+:root[data-theme='tg'] {
+  --surface-base: var(--tg-theme-bg-color, #0b0b0e);
+  --surface-raised: var(--tg-theme-secondary-bg-color, #16171b);
+  --text-primary: var(--tg-theme-text-color, #f5f3ee);
+  --text-secondary: var(--tg-theme-hint-color, #8a8b93);
+  --accent: var(--tg-theme-button-color, #ffb020);
+  --accent-contrast: var(--tg-theme-button-text-color, #000000);
+}

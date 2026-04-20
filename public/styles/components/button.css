@@ -1,0 +1,82 @@
+/* Buttons — amber primary, surface secondary, ghost, icon. All size
+ * variants share the base; only paddings / radii change. */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-7);
+  min-height: 44px;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  transition: background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+  user-select: none;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Variants */
+.button--primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+.button--primary:active:not(:disabled) {
+  background: var(--accent-deep);
+}
+
+.button--secondary {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+
+.button--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.button--danger {
+  background: var(--danger);
+  color: var(--text-primary);
+}
+
+/* Sizes */
+.button--lg {
+  min-height: 52px;
+  padding: var(--space-6) var(--space-10);
+  font-size: var(--text-md);
+}
+
+.button--sm {
+  min-height: 34px;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+}
+
+/* Icon-only — square, circular on --pill */
+.button--icon {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: var(--radius-full);
+}
+
+/* Full-width block */
+.button--block {
+  width: 100%;
+}

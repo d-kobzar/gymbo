@@ -1,0 +1,305 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>GymBo — Redesign</title>
+<meta name="viewport" content="width=1600">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #E9E7E2; font-family: Archivo, system-ui, sans-serif; color: #0A0A0A; }
+  * { box-sizing: border-box; }
+  .page-head { padding: 40px 40px 20px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+  .page-head h1 { margin: 0; font-size: 48px; font-weight: 900; letter-spacing: -2px; line-height: 1; }
+  .page-head .sub { margin-top: 10px; font-size: 15px; color: #595550; max-width: 620px; font-weight: 500; }
+  .page-head .kicker { font-family: JetBrains Mono, monospace; font-size: 12px; font-weight: 700; letter-spacing: 2px; color: #8a8680; text-transform: uppercase; margin-bottom: 8px; }
+  .lang-switch { display: flex; gap: 4px; background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 4px; }
+  .lang-switch button { border: none; background: transparent; font-family: Archivo; font-size: 12px; font-weight: 800; letter-spacing: 1px; padding: 8px 14px; border-radius: 8px; cursor: pointer; color: #8a8680; }
+  .lang-switch button.active { background: #0A0A0A; color: #F59E0B; }
+  .section-band { padding: 20px 40px 10px; display: flex; align-items: center; gap: 14px; }
+  .section-band .num { font-family: JetBrains Mono; font-size: 11px; font-weight: 700; color: #F59E0B; letter-spacing: 2px; }
+  .section-band .title { font-size: 22px; font-weight: 800; letter-spacing: -0.4px; }
+  .section-band .desc { font-size: 13px; color: #7a766f; font-weight: 500; margin-left: auto; max-width: 520px; }
+  .divider-band { height: 1px; background: rgba(0,0,0,0.08); margin: 0 40px; }
+  .stage { padding: 10px 40px 40px; }
+  .variant-band { background: #0A0A0A; color: #fff; padding: 24px 40px; margin-top: 40px; display: flex; justify-content: space-between; align-items: baseline; }
+  .variant-band.v2 { background: #FFB020; color: #0A0A0A; }
+  .variant-band .vl { font-family: JetBrains Mono; font-size: 12px; font-weight: 700; letter-spacing: 3px; opacity: 0.6; }
+  .variant-band .vt { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin-top: 4px; }
+  .variant-band .vd { font-size: 13px; font-weight: 500; opacity: 0.7; max-width: 420px; text-align: right; }
+  .footer-note { padding: 28px 40px 48px; font-size: 12px; font-family: JetBrains Mono; color: #8a8680; letter-spacing: 1px; }
+  /* grid of frames */
+  .frames-row { display: flex; flex-wrap: wrap; gap: 32px 28px; justify-content: flex-start; }
+  .frame-cell { display: flex; flex-direction: column; gap: 12px; }
+  .frame-cell .label { font-family: JetBrains Mono; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #8a8680; text-transform: uppercase; }
+  .tweaks { position: fixed; top: 20px; right: 20px; background: #0A0A0A; color: #fff; border-radius: 16px; padding: 16px; width: 240px; box-shadow: 0 10px 40px rgba(0,0,0,0.25); z-index: 1000; display: none; font-family: Archivo; }
+  .tweaks.open { display: block; }
+  .tweaks h4 { margin: 0 0 12px; font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #FFB020; font-family: JetBrains Mono; }
+  .tweaks .row { margin-bottom: 12px; }
+  .tweaks .row-label { font-size: 11px; color: rgba(255,255,255,0.6); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .tweaks .opt-row { display: flex; gap: 4px; background: rgba(255,255,255,0.05); padding: 3px; border-radius: 10px; }
+  .tweaks .opt-row button { flex: 1; background: transparent; border: none; color: rgba(255,255,255,0.6); padding: 8px; border-radius: 7px; font-family: JetBrains Mono; font-weight: 700; font-size: 11px; letter-spacing: 1px; cursor: pointer; }
+  .tweaks .opt-row button.active { background: #FFB020; color: #0A0A0A; }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div>
+    <div class="kicker">GYMBO · TELEGRAM MINI APP · REDESIGN</div>
+    <h1>Train. Track.<br/>Progress.</h1>
+    <div class="sub">A redesign of GymBo — from the current utilitarian UI to an energetic, Nike‑Training‑inspired system. Two directions explored, across all key screens, rendered inside a realistic Telegram Mini App frame.</div>
+  </div>
+  <div class="lang-switch" id="lang-switch">
+    <button data-lang="ru" class="active">RU</button>
+    <button data-lang="en">EN</button>
+    <button data-lang="ua">UA</button>
+  </div>
+</div>
+
+<div class="divider-band"></div>
+
+<!-- VARIANT 1 -->
+<div class="variant-band">
+  <div>
+    <div class="vl">VARIANT 01</div>
+    <div class="vt">Energetic Light</div>
+  </div>
+  <div class="vd">Warm off‑white surface, Archivo display type, amber accent. Nike Training‑inspired — bold type, high‑contrast hero cards, generous spacing. Safe, polished, familiar.</div>
+</div>
+
+<div class="section-band"><span class="num">01.1</span><span class="title">Home · Log · Rest</span><span class="desc">Daily entry points: start the session, log sets with inline rest timer, big focused rest overlay.</span></div>
+<div class="stage">
+  <div class="frames-row" id="v1-row1"></div>
+</div>
+
+<div class="section-band"><span class="num">01.2</span><span class="title">Progress · Program · Coach</span><span class="desc">Longitudinal views and the AI coach conversation.</span></div>
+<div class="stage">
+  <div class="frames-row" id="v1-row2"></div>
+</div>
+
+<div class="section-band"><span class="num">01.3</span><span class="title">Measurements · Exercises · More · Settings</span><span class="desc">Body tracking, library, hub and preferences.</span></div>
+<div class="stage">
+  <div class="frames-row" id="v1-row3"></div>
+</div>
+
+<!-- VARIANT 2 -->
+<div class="variant-band v2">
+  <div>
+    <div class="vl">VARIANT 02</div>
+    <div class="vt">Dark Energetic</div>
+  </div>
+  <div class="vd">Near‑black canvas, vivid amber, monospace numerals. Feels like a performance instrument — a tool you grab under the rack. More editorial confidence, same Archivo DNA.</div>
+</div>
+
+<div class="section-band"><span class="num">02.1</span><span class="title">Home · Log · Rest</span><span class="desc">Same flow, different emotional register — night‑mode gym energy.</span></div>
+<div class="stage">
+  <div class="frames-row" id="v2-row1"></div>
+</div>
+
+<div class="section-band"><span class="num">02.2</span><span class="title">Progress · Program · Coach</span><span class="desc">Data and dialogue, dialed in.</span></div>
+<div class="stage">
+  <div class="frames-row" id="v2-row2"></div>
+</div>
+
+<div class="section-band"><span class="num">02.3</span><span class="title">Measurements · Exercises · More · Settings</span><span class="desc">Body tracking, library, hub and preferences.</span></div>
+<div class="stage">
+  <div class="frames-row" id="v2-row3"></div>
+</div>
+
+<div class="footer-note">END · SCROLL UP TO RETURN · SWITCH LANGUAGE AT TOP RIGHT · TOGGLE TWEAKS IN TOOLBAR</div>
+
+<!-- Tweaks panel -->
+<div class="tweaks" id="tweaks">
+  <h4>Tweaks</h4>
+  <div class="row">
+    <div class="row-label">Language</div>
+    <div class="opt-row" id="tw-lang">
+      <button data-lang="ru" class="active">RU</button>
+      <button data-lang="en">EN</button>
+      <button data-lang="ua">UA</button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="row-label">Show variant</div>
+    <div class="opt-row" id="tw-variant">
+      <button data-v="both" class="active">BOTH</button>
+      <button data-v="v1">V1</button>
+      <button data-v="v2">V2</button>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="__tweak_defaults">/*EDITMODE-BEGIN*/{
+  "lang": "ua",
+  "variant": "v1"
+}/*EDITMODE-END*/</script>
+
+<script>
+  window.GYMBO_LANG = 'ru';
+</script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="src/i18n.jsx"></script>
+<script type="text/babel" src="src/frame.jsx"></script>
+<script type="text/babel" src="src/v1-main.jsx"></script>
+<script type="text/babel" src="src/v1-more.jsx"></script>
+<script type="text/babel" src="src/v2-main.jsx"></script>
+<script type="text/babel" src="src/v2-more.jsx"></script>
+
+<script type="text/babel">
+  // Mount all frames
+  function Cell({ label, frame }) {
+    return (
+      <div className="frame-cell">
+        {frame}
+        <div className="label">{label}</div>
+      </div>
+    );
+  }
+
+  function V1Row1() {
+    const t = window.GYMBO_I18N[window.GYMBO_LANG].nav;
+    return (
+      <>
+        <Cell label={`V1 · ${t.home}`} frame={<TGFrame title="GymBo"><V1Home /><TabBar active="home" accent={V1.accent} /></TGFrame>} />
+        <Cell label={`V1 · ${t.log}`} frame={<TGFrame title="GymBo"><V1Log /><TabBar active="log" accent={V1.accent} /></TGFrame>} />
+        <Cell label="V1 · Rest timer" frame={<TGFrame title="GymBo" dark><V1Rest /></TGFrame>} />
+      </>
+    );
+  }
+  function V1Row2() {
+    const t = window.GYMBO_I18N[window.GYMBO_LANG].nav;
+    return (
+      <>
+        <Cell label={`V1 · ${t.progress}`} frame={<TGFrame title="GymBo"><V1Progress /><TabBar active="progress" accent={V1.accent} /></TGFrame>} />
+        <Cell label="V1 · Program" frame={<TGFrame title="GymBo"><V1Program /><TabBar active="more" accent={V1.accent} /></TGFrame>} />
+        <Cell label="V1 · AI Coach" frame={<TGFrame title="AI Coach"><V1Coach /></TGFrame>} />
+      </>
+    );
+  }
+  function V1Row3() {
+    return (
+      <>
+        <Cell label="V1 · Measurements" frame={<TGFrame title="GymBo"><V1Measure /><TabBar active="more" accent={V1.accent} /></TGFrame>} />
+        <Cell label="V1 · Exercises" frame={<TGFrame title="GymBo"><V1Exercises /><TabBar active="more" accent={V1.accent} /></TGFrame>} />
+        <Cell label="V1 · More" frame={<TGFrame title="GymBo"><V1More /><TabBar active="more" accent={V1.accent} /></TGFrame>} />
+        <Cell label="V1 · Settings" frame={<TGFrame title="GymBo"><V1Settings /><TabBar active="more" accent={V1.accent} /></TGFrame>} />
+      </>
+    );
+  }
+  function V2Row1() {
+    const t = window.GYMBO_I18N[window.GYMBO_LANG].nav;
+    return (
+      <>
+        <Cell label={`V2 · ${t.home}`} frame={<TGFrame title="GymBo" dark bg={V2.bg}><V2Home /><TabBar active="home" dark accent={V2.accent} /></TGFrame>} />
+        <Cell label={`V2 · ${t.log}`} frame={<TGFrame title="GymBo" dark bg={V2.bg}><V2Log /><TabBar active="log" dark accent={V2.accent} /></TGFrame>} />
+        <Cell label="V2 · Rest timer" frame={<TGFrame title="GymBo" dark bg="#000"><V2Rest /></TGFrame>} />
+      </>
+    );
+  }
+  function V2Row2() {
+    const t = window.GYMBO_I18N[window.GYMBO_LANG].nav;
+    return (
+      <>
+        <Cell label={`V2 · ${t.progress}`} frame={<TGFrame title="GymBo" dark bg={V2.bg}><V2Progress /><TabBar active="progress" dark accent={V2.accent} /></TGFrame>} />
+        <Cell label="V2 · Program" frame={<TGFrame title="GymBo" dark bg={V2.bg}><V2Program /><TabBar active="more" dark accent={V2.accent} /></TGFrame>} />
+        <Cell label="V2 · AI Coach" frame={<TGFrame title="AI Coach" dark bg={V2.bg}><V2Coach /></TGFrame>} />
+      </>
+    );
+  }
+  function V2Row3() {
+    return (
+      <>
+        <Cell label="V2 · Measurements" frame={<TGFrame title="GymBo" dark bg={V2.bg}><V2Measure /><TabBar active="more" dark accent={V2.accent} /></TGFrame>} />
+        <Cell label="V2 · Exercises" frame={<TGFrame title="GymBo" dark bg={V2.bg}><V2Exercises /><TabBar active="more" dark accent={V2.accent} /></TGFrame>} />
+        <Cell label="V2 · More" frame={<TGFrame title="GymBo" dark bg={V2.bg}><V2More /><TabBar active="more" dark accent={V2.accent} /></TGFrame>} />
+        <Cell label="V2 · Settings" frame={<TGFrame title="GymBo" dark bg={V2.bg}><V2Settings /><TabBar active="more" dark accent={V2.accent} /></TGFrame>} />
+      </>
+    );
+  }
+
+  function mountAll() {
+    const pairs = [
+      ['v1-row1', <V1Row1 />], ['v1-row2', <V1Row2 />], ['v1-row3', <V1Row3 />],
+      ['v2-row1', <V2Row1 />], ['v2-row2', <V2Row2 />], ['v2-row3', <V2Row3 />],
+    ];
+    pairs.forEach(([id, el]) => {
+      const node = document.getElementById(id);
+      if (!node) return;
+      if (!node._root) node._root = ReactDOM.createRoot(node);
+      node._root.render(el);
+    });
+  }
+
+  function applyVariant(v) {
+    const v1 = document.querySelectorAll('#v1-row1, #v1-row2, #v1-row3');
+    const v2 = document.querySelectorAll('#v2-row1, #v2-row2, #v2-row3');
+    const v1Bands = document.querySelectorAll('.variant-band:not(.v2), .section-band:has(.num:first-child)');
+    document.querySelectorAll('.variant-band').forEach(el => {
+      el.style.display = (v === 'both' || (v === 'v1' && !el.classList.contains('v2')) || (v === 'v2' && el.classList.contains('v2'))) ? '' : 'none';
+    });
+    v1.forEach(el => el.closest('.stage').style.display = (v === 'both' || v === 'v1') ? '' : 'none');
+    v2.forEach(el => el.closest('.stage').style.display = (v === 'both' || v === 'v2') ? '' : 'none');
+    // hide section bands accordingly
+    document.querySelectorAll('.section-band .num').forEach(n => {
+      const band = n.closest('.section-band');
+      const isV1 = n.textContent.startsWith('01');
+      const isV2 = n.textContent.startsWith('02');
+      band.style.display = (v === 'both' || (v === 'v1' && isV1) || (v === 'v2' && isV2)) ? '' : 'none';
+    });
+  }
+
+  function setLang(lang) {
+    window.GYMBO_LANG = lang;
+    document.querySelectorAll('#lang-switch button, #tw-lang button').forEach(b => {
+      b.classList.toggle('active', b.dataset.lang === lang);
+    });
+    mountAll();
+  }
+
+  document.querySelectorAll('#lang-switch button').forEach(b => {
+    b.addEventListener('click', () => setLang(b.dataset.lang));
+  });
+
+  // Initial mount
+  setTimeout(mountAll, 60);
+
+  // Tweaks plumbing
+  const tweaks = document.getElementById('tweaks');
+  document.querySelectorAll('#tw-lang button').forEach(b => {
+    b.addEventListener('click', () => {
+      setLang(b.dataset.lang);
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { lang: b.dataset.lang } }, '*');
+    });
+  });
+  document.querySelectorAll('#tw-variant button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#tw-variant button').forEach(x => x.classList.toggle('active', x === b));
+      applyVariant(b.dataset.v);
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { variant: b.dataset.v } }, '*');
+    });
+  });
+
+  window.addEventListener('message', (e) => {
+    const d = e.data || {};
+    if (d.type === '__activate_edit_mode') tweaks.classList.add('open');
+    if (d.type === '__deactivate_edit_mode') tweaks.classList.remove('open');
+  });
+  window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+  // Load defaults
+  try {
+    const defs = JSON.parse(document.getElementById('__tweak_defaults').textContent);
+    if (defs.lang) setLang(defs.lang);
+    if (defs.variant) {
+      document.querySelectorAll('#tw-variant button').forEach(x => x.classList.toggle('active', x.dataset.v === defs.variant));
+      setTimeout(() => applyVariant(defs.variant), 100);
+    }
+  } catch {}
+</script>
+
+</body>
+</html>

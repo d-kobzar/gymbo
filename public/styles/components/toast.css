@@ -1,0 +1,58 @@
+/* Toast — bottom-anchored snackbar above the bottom-nav. Sliding
+ * enter/exit. Variants: info (default), success, error, warning. */
+
+.toast {
+  position: fixed;
+  left: var(--space-5);
+  right: var(--space-5);
+  bottom: calc(var(--space-nav-clear) + var(--space-5) + var(--safe-bottom));
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-7);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  border-radius: var(--radius-lg);
+  border-left: 3px solid var(--info);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transform: translateY(calc(100% + var(--space-nav-clear)));
+  transition: transform var(--duration-medium) var(--ease-out),
+    opacity var(--duration-medium) var(--ease-out);
+  opacity: 0;
+  pointer-events: none;
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+}
+
+.toast--open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.toast--success {
+  border-left-color: var(--success);
+}
+
+.toast--error {
+  border-left-color: var(--danger);
+}
+
+.toast--warning {
+  border-left-color: var(--warning);
+}
+
+.toast__message {
+  flex: 1;
+}
+
+.toast__action {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: var(--weight-extrabold);
+  cursor: pointer;
+}

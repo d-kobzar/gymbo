@@ -1,0 +1,44 @@
+/* Body + root typography, layout canvas. No component styles here. */
+
+html,
+body {
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+body {
+  padding-top: var(--safe-top);
+  /* Bottom padding is handled by bottom-nav, which uses safe-bottom internally */
+}
+
+/* Monospace by default for any element decorated with .mono — used
+ * widely for labels, set data, timers, badges. */
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+/* Screen-reader only — accessibility helper for icon-only buttons. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Selection — accent on dark. */
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
