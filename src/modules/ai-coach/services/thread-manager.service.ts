@@ -41,6 +41,14 @@ export class ThreadManagerService {
     return record?.assistantId ?? null;
   }
 
+  async findThreadId(userId: number): Promise<string | null> {
+    const record = await this.aiThreadModel.findOne({
+      where: { userId },
+      attributes: ['threadId'],
+    });
+    return record?.threadId ?? null;
+  }
+
   async clear(userId: number, client: OpenAI): Promise<void> {
     const record = await this.aiThreadModel.findOne({ where: { userId } });
     if (!record) return;

@@ -5,8 +5,11 @@ import { BodyMeasurement } from '@modules/measurements/models/body-measurement.m
 import { Program } from '@modules/programs/models/program.model';
 import { TrainingLog } from '@modules/training-logs/models/training-log.model';
 import { AiThread } from './models/ai-thread.model';
+import { CoachContext } from './models/coach-context.model';
 import { AssistantService } from './services/assistant.service';
+import { CoachContextService } from './services/coach-context.service';
 import { CoachService } from './services/coach.service';
+import { RollingSummaryService } from './services/rolling-summary.service';
 import { ThreadManagerService } from './services/thread-manager.service';
 import { ToolExecutorService } from './services/tool-executor.service';
 import { GetCurrentProgramHandler } from './tools/handlers/get-current-program.handler';
@@ -16,6 +19,8 @@ import { GetPersonalRecordsHandler } from './tools/handlers/get-personal-records
 import { GetUserStatsHandler } from './tools/handlers/get-user-stats.handler';
 import { GetVolumeAnalysisHandler } from './tools/handlers/get-volume-analysis.handler';
 import { GetWorkoutsHandler } from './tools/handlers/get-workouts.handler';
+import { RecordCoachingDecisionHandler } from './tools/handlers/record-coaching-decision.handler';
+import { UpdateUserProfileHandler } from './tools/handlers/update-user-profile.handler';
 import type { CoachTool } from './tools/coach-tool.interface';
 import { ToolRegistry } from './tools/tool-registry';
 
@@ -27,11 +32,20 @@ const handlerProviders = [
   GetCurrentProgramHandler,
   GetExerciseProgressHandler,
   GetVolumeAnalysisHandler,
+  UpdateUserProfileHandler,
+  RecordCoachingDecisionHandler,
 ];
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([AiThread, TrainingLog, Exercise, BodyMeasurement, Program]),
+    SequelizeModule.forFeature([
+      AiThread,
+      CoachContext,
+      TrainingLog,
+      Exercise,
+      BodyMeasurement,
+      Program,
+    ]),
   ],
   providers: [
     ...handlerProviders,
@@ -45,6 +59,8 @@ const handlerProviders = [
     },
     ToolExecutorService,
     ThreadManagerService,
+    CoachContextService,
+    RollingSummaryService,
     AssistantService,
     CoachService,
   ],
