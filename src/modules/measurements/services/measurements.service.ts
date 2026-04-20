@@ -124,7 +124,12 @@ export class MeasurementsService {
     });
     if (!measurement) throw new NotFoundException('Measurement not found');
 
-    const s3Key = `measurements/${userId}/${measurementId}/${Date.now()}-${file.originalname}`;
+    // Layout: photos/{userId}/{yyyy-mm-dd}/{ts}-{name}. Top-level
+    // `photos/` namespaces off future non-photo data, and using the
+    // measurement's own date keeps every shot from one entry in the
+    // same folder even if the upload happens a day later.
+    const safeName = file.originalname.replace(/[^\w.\-]+/g, '_');
+    const s3Key = `photos/${userId}/${measurement.date}/${Date.now()}-${safeName}`;
     await this.storageService.upload(file.buffer, s3Key, file.mimetype);
 
     return this.photoModel.create({
