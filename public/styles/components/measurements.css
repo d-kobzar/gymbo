@@ -335,6 +335,25 @@
   letter-spacing: -0.5px;
 }
 
+/* iOS Safari gives <input type="date"> a ::-webkit-date-and-time-value
+ * element that ignores width:100% unless appearance is reset. Without
+ * this the date field renders narrower than the numeric ones in the
+ * same form. */
+.measure-form .input[type='date'] {
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: var(--font-sans);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+}
+
+.measure-form .input[type='date']::-webkit-date-and-time-value {
+  text-align: center;
+  width: 100%;
+}
+
 .measure-form .input:focus {
   border-color: var(--accent);
   background: var(--surface-raised);
