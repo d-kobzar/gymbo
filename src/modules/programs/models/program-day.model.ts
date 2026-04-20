@@ -1,11 +1,11 @@
 import {
-  Table,
+  BelongsTo,
   Column,
-  Model,
   DataType,
   ForeignKey,
-  BelongsTo,
   HasMany,
+  Model,
+  Table,
 } from 'sequelize-typescript';
 import { Program } from './program.model';
 import { ProgramExercise } from './program-exercise.model';
@@ -13,21 +13,21 @@ import { ProgramExercise } from './program-exercise.model';
 @Table({ tableName: 'ProgramDays', timestamps: false })
 export class ProgramDay extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id: number;
+  id!: number;
 
   @ForeignKey(() => Program)
   @Column({ type: DataType.INTEGER, allowNull: false, onDelete: 'CASCADE' })
-  programId: number;
+  programId!: number;
 
   @BelongsTo(() => Program)
-  program: Program;
+  program!: Program;
 
   @Column({ type: DataType.STRING(20), allowNull: false })
-  day: string;
+  day!: string;
 
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
-  isRest: boolean;
+  isRest!: boolean;
 
   @HasMany(() => ProgramExercise)
-  exercises: ProgramExercise[];
+  exercises!: ProgramExercise[];
 }

@@ -5,9 +5,9 @@ import { Exercise } from '@modules/exercises/models/exercise.model';
 import { TrainingLog } from '@modules/training-logs/models/training-log.model';
 import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
 import { MeasurementPhoto } from '@modules/measurements/models/measurement-photo.model';
-import { Program } from '../programs/program.model';
-import { ProgramDay } from '../programs/program-day.model';
-import { ProgramExercise } from '../programs/program-exercise.model';
+import { Program } from '@modules/programs/models/program.model';
+import { ProgramDay } from '@modules/programs/models/program-day.model';
+import { ProgramExercise } from '@modules/programs/models/program-exercise.model';
 
 @Injectable()
 export class BackupService {

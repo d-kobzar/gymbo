@@ -1,20 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/sequelize';
+import { col, fn } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
-import { fn, col } from 'sequelize';
-import { Program } from './program.model';
-import { ProgramDay } from './program-day.model';
-import { ProgramExercise } from './program-exercise.model';
 import { Exercise } from '@modules/exercises/models/exercise.model';
-
-interface CreateProgramDto {
-  name: string;
-  days: {
-    day: string;
-    isRest: boolean;
-    exercises?: { exerciseId: number; sets: number }[];
-  }[];
-}
+import { CreateProgramDto } from '../dto/create-program.dto';
+import { ProgramEvents, ProgramMutatedPayload } from '../events/program.events';
+import { ProgramDay } from '../models/program-day.model';
+import { ProgramExercise } from '../models/program-exercise.model';
+import { Program } from '../models/program.model';
 
 @Injectable()
 export class ProgramsService {
@@ -24,30 +18,22 @@ export class ProgramsService {
     @InjectModel(ProgramExercise)
     private readonly programExerciseModel: typeof ProgramExercise,
     private readonly sequelize: Sequelize,
+    private readonly events: EventEmitter2,
   ) {}
 
-  async getVersions(userId: number) {
-    const programs = await this.programModel.findAll({
+  getVersions(userId: number): Promise<Program[]> {
+    return this.programModel.findAll({
       where: { userId },
       attributes: {
-        include: [
-          [fn('COUNT', col('days.id')), 'dayCount'],
-        ],
+        include: [[fn('COUNT', col('days.id')), 'dayCount']],
       },
-      include: [
-        {
-          model: ProgramDay,
-          attributes: [],
-        },
-      ],
+      include: [{ model: ProgramDay, attributes: [] }],
       group: ['Program.id'],
       order: [['version', 'DESC']],
     });
-
-    return programs;
   }
 
-  async getCurrent(userId: number) {
+  async getCurrent(userId: number): Promise<Program> {
     const program = await this.programModel.findOne({
       where: { userId },
       order: [['version', 'DESC']],
@@ -63,15 +49,11 @@ export class ProgramsService {
         },
       ],
     });
-
-    if (!program) {
-      throw new NotFoundException('No program found');
-    }
-
+    if (!program) throw new NotFoundException('No program found');
     return program;
   }
 
-  async getById(userId: number, id: number) {
+  async getById(userId: number, id: number): Promise<Program> {
     const program = await this.programModel.findOne({
       where: { id, userId },
       include: [
@@ -86,16 +68,12 @@ export class ProgramsService {
         },
       ],
     });
-
-    if (!program) {
-      throw new NotFoundException('Program not found');
-    }
-
+    if (!program) throw new NotFoundException('Program not found');
     return program;
   }
 
-  async create(userId: number, data: CreateProgramDto) {
-    return this.sequelize.transaction(async (transaction) => {
+  async create(userId: number, data: CreateProgramDto): Promise<Program> {
+    const created = await this.sequelize.transaction(async (transaction) => {
       const lastProgram = await this.programModel.findOne({
         where: { userId },
         order: [['version', 'DESC']],
@@ -105,7 +83,7 @@ export class ProgramsService {
       const version = lastProgram ? lastProgram.version + 1 : 1;
 
       const program = await this.programModel.create(
-        { userId, name: data.name, version },
+        { userId, name: data.name, version } as Partial<Program>,
         { transaction },
       );
 
@@ -115,7 +93,7 @@ export class ProgramsService {
             programId: program.id,
             day: dayData.day,
             isRest: dayData.isRest,
-          },
+          } as Partial<ProgramDay>,
           { transaction },
         );
 
@@ -128,24 +106,28 @@ export class ProgramsService {
                 exerciseId: ex.exerciseId,
                 sets: ex.sets,
                 sortOrder: i,
-              },
+              } as Partial<ProgramExercise>,
               { transaction },
             );
           }
         }
       }
 
-      return this.getById(userId, program.id);
+      return program;
     });
+
+    this.events.emit(ProgramEvents.Created, {
+      userId,
+      programId: created.id,
+    } satisfies ProgramMutatedPayload);
+
+    return this.getById(userId, created.id);
   }
 
   async remove(userId: number, id: number): Promise<void> {
-    const program = await this.programModel.findOne({
-      where: { id, userId },
-    });
-    if (!program) {
-      throw new NotFoundException('Program not found');
-    }
+    const program = await this.programModel.findOne({ where: { id, userId } });
+    if (!program) throw new NotFoundException('Program not found');
     await program.destroy();
+    this.events.emit(ProgramEvents.Deleted, { userId, programId: id });
   }
 }

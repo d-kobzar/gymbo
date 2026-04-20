@@ -1,9 +1,9 @@
 import { TrainingLog } from '@modules/training-logs/models/training-log.model';
 import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
 import { Exercise } from '@modules/exercises/models/exercise.model';
-import { Program } from '../../programs/program.model';
-import { ProgramDay } from '../../programs/program-day.model';
-import { ProgramExercise } from '../../programs/program-exercise.model';
+import { Program } from '@modules/programs/models/program.model';
+import { ProgramDay } from '@modules/programs/models/program-day.model';
+import { ProgramExercise } from '@modules/programs/models/program-exercise.model';
 import { Op, fn, col, literal } from 'sequelize';
 
 export async function executeTool(name: string, args: any, userId: number): Promise<any> {

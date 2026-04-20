@@ -22,7 +22,7 @@ import { StorageModule } from '@modules/storage/storage.module';
 import { ExercisesModule } from '@modules/exercises/exercises.module';
 import { TrainingLogsModule } from '@modules/training-logs/training-logs.module';
 import { MeasurementsModule } from '@modules/measurements/measurements.module';
-import { ProgramsModule } from './programs/programs.module';
+import { ProgramsModule } from '@modules/programs/programs.module';
 import { StatsModule } from './stats/stats.module';
 import { BackupModule } from './backup/backup.module';
 import { NotificationsModule } from './notifications/notifications.module';

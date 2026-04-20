@@ -3,7 +3,7 @@ import { Exercise } from '@modules/exercises/models/exercise.model';
 import { TrainingLog } from '@modules/training-logs/models/training-log.model';
 import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
 import { MeasurementPhoto } from '@modules/measurements/models/measurement-photo.model';
-import { Program } from '@/programs/program.model';
+import { Program } from '@modules/programs/models/program.model';
 import { NotificationSetting } from '@/notifications/notification-setting.model';
 import { AiThread } from '@/ai/ai-thread.model';
 

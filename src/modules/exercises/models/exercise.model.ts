@@ -9,7 +9,7 @@ import {
 } from 'sequelize-typescript';
 import { User } from '@modules/users/models/user.model';
 import { TrainingLog } from '@modules/training-logs/models/training-log.model';
-import { ProgramExercise } from '@/programs/program-exercise.model';
+import { ProgramExercise } from '@modules/programs/models/program-exercise.model';
 
 @Table({
   tableName: 'Exercises',

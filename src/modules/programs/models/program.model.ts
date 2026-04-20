@@ -1,11 +1,11 @@
 import {
-  Table,
+  BelongsTo,
   Column,
-  Model,
   DataType,
   ForeignKey,
-  BelongsTo,
   HasMany,
+  Model,
+  Table,
 } from 'sequelize-typescript';
 import { User } from '@modules/users/models/user.model';
 import { ProgramDay } from './program-day.model';
@@ -18,21 +18,21 @@ import { ProgramDay } from './program-day.model';
 })
 export class Program extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id: number;
+  id!: number;
 
   @ForeignKey(() => User)
   @Column({ type: DataType.INTEGER, allowNull: false })
-  userId: number;
+  userId!: number;
 
   @BelongsTo(() => User)
-  user: User;
+  user!: User;
 
   @Column({ type: DataType.INTEGER, allowNull: false })
-  version: number;
+  version!: number;
 
   @Column({ type: DataType.STRING, allowNull: true })
-  name: string;
+  name!: string;
 
   @HasMany(() => ProgramDay)
-  days: ProgramDay[];
+  days!: ProgramDay[];
 }
