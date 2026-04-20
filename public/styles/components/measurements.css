@@ -64,6 +64,14 @@
   gap: var(--space-4);
 }
 
+/* Odd total tile count (e.g. the 9 circumferences below the hero)
+ * leaves the last tile alone in its row — span it full-width so
+ * the grid doesn't look broken. Stays a no-op once the count is
+ * even. */
+.measure-grid > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
 .measure-tile {
   display: flex;
   flex-direction: column;
