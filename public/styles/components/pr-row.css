@@ -1,0 +1,53 @@
+/* Personal-record row — single line with accent bar on the left,
+ * exercise name, and the record itself in monospace. Designed to
+ * chain vertically with 6px gap. */
+
+.pr-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pr-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+  min-height: 56px;
+}
+
+.pr-row__accent {
+  flex: 0 0 auto;
+  width: 4px;
+  height: 40px;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+}
+
+.pr-row__name {
+  flex: 1;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.pr-row__data {
+  font-family: var(--font-mono);
+  font-size: var(--text-body-sm);
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.continue-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  text-align: left;
+  width: 100%;
+  border: none;
+}

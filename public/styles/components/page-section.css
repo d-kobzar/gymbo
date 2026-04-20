@@ -1,0 +1,61 @@
+/* Page-section — shared header-plus-body wrapper used on Home,
+ * Progress, Program, etc. The mono kicker matches labels on
+ * stat-cards, PR rows and log data. */
+
+.page-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.page-section__kicker {
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-top: var(--space-7);
+}
+
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  padding: var(--space-9) var(--space-7);
+  padding-bottom: calc(var(--space-nav-clear) + var(--space-7) + var(--safe-bottom));
+}
+
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.page-header__kicker {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.page-header__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-3);
+}
