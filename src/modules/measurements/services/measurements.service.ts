@@ -174,10 +174,11 @@ export class MeasurementsService {
       order: [['date', 'ASC']],
     });
 
-    const header = 'date,weight,shoulders,arm,chest,waist,abs,glutes,thigh,calf';
+    const header =
+      'date,weight,shoulders,neck,arm,chest,waist,abs,glutes,thigh,calf';
     const rows = measurements.map(
       (m) =>
-        `${m.date},${m.weight ?? ''},${m.shoulders ?? ''},${m.arm ?? ''},${m.chest ?? ''},${m.waist ?? ''},${m.abs ?? ''},${m.glutes ?? ''},${m.thigh ?? ''},${m.calf ?? ''}`,
+        `${m.date},${m.weight ?? ''},${m.shoulders ?? ''},${m.neck ?? ''},${m.arm ?? ''},${m.chest ?? ''},${m.waist ?? ''},${m.abs ?? ''},${m.glutes ?? ''},${m.thigh ?? ''},${m.calf ?? ''}`,
     );
     return [header, ...rows].join('\n');
   }

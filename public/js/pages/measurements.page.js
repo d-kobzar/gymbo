@@ -14,14 +14,14 @@ const METRIC_GROUPS = [
     titleKey: 'measurements.group_core',
     metrics: [
       { id: 'weight', step: 0.1 },
+      { id: 'chest' },
       { id: 'waist' },
       { id: 'abs' },
-      { id: 'chest' },
     ],
   },
   {
     titleKey: 'measurements.group_upper',
-    metrics: [{ id: 'shoulders' }, { id: 'arm' }],
+    metrics: [{ id: 'shoulders' }, { id: 'neck' }, { id: 'arm' }],
   },
   {
     titleKey: 'measurements.group_lower',
@@ -29,7 +29,22 @@ const METRIC_GROUPS = [
   },
 ];
 
-const TILE_METRICS = ['waist', 'abs', 'shoulders', 'arm', 'glutes', 'thigh', 'calf'];
+// Grid order: athlete asked for shoulders → neck → chest → arm →
+// waist → belly → thigh → calf → glutes. Hero weight sits above.
+const TILE_METRICS = [
+  'shoulders',
+  'neck',
+  'chest',
+  'arm',
+  'waist',
+  'abs',
+  'thigh',
+  'calf',
+  'glutes',
+];
+
+// Set of 9 circumferences + weight the detail sheet renders in full.
+const ALL_METRICS = ['weight', ...TILE_METRICS];
 
 // Metrics where an increase is an unwanted direction (fat / mass we
 // want to trim). For these, delta > 0 lights red and delta < 0 green.
@@ -348,7 +363,7 @@ export class MeasurementsPage extends Page {
     const body = Page.el('div', { className: 'measure-detail' });
 
     const grid = Page.el('div', { className: 'measure-grid' });
-    for (const id of ['weight', 'waist', 'abs', 'chest', 'shoulders', 'arm', 'glutes', 'thigh', 'calf']) {
+    for (const id of ALL_METRICS) {
       const value = m[id];
       const prevValue = prev?.[id];
       const delta =

@@ -53,6 +53,7 @@ export class UsersController {
             date: latestMeasurement.date,
             weight: latestMeasurement.weight,
             shoulders: latestMeasurement.shoulders,
+            neck: latestMeasurement.neck,
             arm: latestMeasurement.arm,
             chest: latestMeasurement.chest,
             waist: latestMeasurement.waist,

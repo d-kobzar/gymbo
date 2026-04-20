@@ -602,13 +602,14 @@ export class CoachContextService {
     const fields: Array<[string, unknown]> = [
       ['Weight', m.weight],
       ['Shoulders', m.shoulders],
+      ['Neck', m.neck],
       ['Chest', m.chest],
       ['Arm', m.arm],
       ['Waist', m.waist],
-      ['Abs', m.abs],
-      ['Glutes', m.glutes],
+      ['Belly', m.abs],
       ['Thigh', m.thigh],
       ['Calf', m.calf],
+      ['Glutes', m.glutes],
     ];
     const present = fields
       .filter(([, v]) => v != null)

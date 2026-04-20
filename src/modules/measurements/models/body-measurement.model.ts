@@ -27,6 +27,7 @@ export class BodyMeasurement extends Model {
 
   @Column({ type: DataType.DECIMAL(5, 1), allowNull: true }) weight!: number;
   @Column({ type: DataType.DECIMAL(5, 1), allowNull: true }) shoulders!: number;
+  @Column({ type: DataType.DECIMAL(5, 1), allowNull: true }) neck!: number;
   @Column({ type: DataType.DECIMAL(5, 1), allowNull: true }) arm!: number;
   @Column({ type: DataType.DECIMAL(5, 1), allowNull: true }) chest!: number;
   @Column({ type: DataType.DECIMAL(5, 1), allowNull: true }) waist!: number;

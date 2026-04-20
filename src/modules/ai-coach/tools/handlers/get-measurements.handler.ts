@@ -6,6 +6,7 @@ import type { CoachTool } from '../coach-tool.interface';
 const METRICS = [
   'weight',
   'shoulders',
+  'neck',
   'arm',
   'chest',
   'waist',

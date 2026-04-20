@@ -28,6 +28,7 @@ const SEXES = ['male', 'female'] as const;
 export class InitialMeasurementDto {
   @IsNumber() @Min(20) @Max(400) weight!: number;
   @IsOptional() @IsNumber() @Min(0) @Max(300) shoulders?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(100) neck?: number;
   @IsOptional() @IsNumber() @Min(0) @Max(300) arm?: number;
   @IsOptional() @IsNumber() @Min(0) @Max(300) chest?: number;
   @IsOptional() @IsNumber() @Min(0) @Max(300) waist?: number;

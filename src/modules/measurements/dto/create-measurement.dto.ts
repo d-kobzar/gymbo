@@ -13,6 +13,7 @@ export class CreateMeasurementDto {
 
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(500) weight?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(300) shoulders?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) neck?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(300) arm?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(300) chest?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(300) waist?: number;

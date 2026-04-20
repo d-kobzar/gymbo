@@ -3,6 +3,7 @@ import { IsIn } from 'class-validator';
 export const MEASUREMENT_METRICS = [
   'weight',
   'shoulders',
+  'neck',
   'arm',
   'chest',
   'waist',
