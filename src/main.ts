@@ -24,10 +24,12 @@ async function bootstrap() {
   app.enableCors();
 
   const port = Number(process.env.PORT) || 3000;
-  await app.listen(port);
+  // Bind to 0.0.0.0 so Heroku's router can reach the dyno; localhost
+  // binding would make the app invisible to the platform.
+  await app.listen(port, '0.0.0.0');
 
   const logger = app.get(Logger);
-  logger.log(`GymBo running on http://localhost:${port}`, 'Bootstrap');
+  logger.log(`GymBo running on port ${port}`, 'Bootstrap');
 }
 
 bootstrap();
