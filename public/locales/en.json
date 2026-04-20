@@ -151,6 +151,15 @@
     "welcome": "Hi! I'm your AI fitness coach. Ask me anything about your training.",
     "error": "Sorry, something went wrong. Try again."
   },
+  "rest": {
+    "title": "REST",
+    "skip": "Skip",
+    "add_seconds": "+{seconds}s",
+    "of": "of {total}",
+    "duration": "Rest timer",
+    "start": "Start rest",
+    "next_set": "NEXT · SET {set} · {reps}×{weight} kg"
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",

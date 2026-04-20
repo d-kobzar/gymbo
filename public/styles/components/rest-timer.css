@@ -1,0 +1,149 @@
+/* Fullscreen rest-timer overlay. V2Rest: pure-black canvas with a
+ * radial amber glow behind a 240 px progress ring + 72 px mono
+ * countdown. Lives at z-modal — above everything including the
+ * bottom nav. */
+
+.rest-timer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: #000;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--space-10) + var(--safe-top)) var(--space-9)
+    calc(var(--space-10) + var(--safe-bottom));
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--duration-medium) var(--ease-out);
+}
+
+.rest-timer--open {
+  opacity: 1;
+}
+
+.rest-timer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 40%,
+    color-mix(in srgb, var(--accent) 25%, transparent) 0%,
+    transparent 60%
+  );
+}
+
+.rest-timer__kicker {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--space-10);
+}
+
+.rest-timer__ring {
+  position: relative;
+  width: 240px;
+  height: 240px;
+}
+
+.rest-timer__ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.rest-timer__ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 4;
+}
+
+.rest-timer__ring-fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.rest-timer__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.rest-timer__digit {
+  font-family: var(--font-sans);
+  font-size: var(--text-display);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: -3.5px;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.rest-timer__caption {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.rest-timer__actions {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 360px;
+  margin-top: var(--space-12);
+}
+
+.rest-timer__action {
+  height: 52px;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+}
+
+.rest-timer__action--skip {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+}
+
+.rest-timer__action--add {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.rest-timer__footer {
+  position: relative;
+  margin-top: var(--space-10);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-align: center;
+  min-height: 1em;
+}

@@ -3,6 +3,8 @@ import { ExercisePicker } from '../components/exercise-picker.js';
 import { SetRow } from '../components/set-row.js';
 import { Skeleton } from '../components/skeleton.js';
 import { EmptyState } from '../components/empty-state.js';
+import { SegmentedControl } from '../components/segmented-control.js';
+import { RestTimer } from '../components/rest-timer.js';
 import { toast } from '../components/toast.js';
 import { api, ApiError, NetworkError } from '../core/api.js';
 import { i18n } from '../core/i18n.js';
@@ -10,6 +12,9 @@ import { haptics } from '../core/haptics.js';
 import { telegram } from '../core/telegram.js';
 
 const DRAFT_KEY = 'gymbo_log_draft';
+const REST_DURATION_KEY = 'gymbo_rest_duration';
+const REST_PRESETS = [60, 90, 120, 180];
+const REST_DEFAULT = 90;
 
 /**
  * Log page — capture one set at a time.
@@ -52,6 +57,7 @@ export class LogPage extends Page {
     /** @type {HTMLElement | null} */
     this.todayHost = null;
     this.date = todayIso();
+    this.restDuration = restoreRestDuration();
   }
 
   render() {
@@ -61,6 +67,7 @@ export class LogPage extends Page {
     shell.append(this.renderDateRow());
     shell.append(this.renderExerciseSelector());
     shell.append(this.renderInputs());
+    shell.append(this.renderRestSection());
     shell.append(this.renderTodaySection());
 
     this.root.append(shell);
@@ -188,6 +195,46 @@ export class LogPage extends Page {
     return group;
   }
 
+  renderRestSection() {
+    const section = Page.el('div', { className: 'page-section log-rest' });
+    section.append(
+      Page.el('span', { className: 'input-label', text: i18n.t('rest.duration') }),
+    );
+
+    const seg = Page.el('div');
+    new SegmentedControl(seg, {
+      block: true,
+      value: String(this.restDuration),
+      options: REST_PRESETS.map((s) => ({ id: String(s), label: formatMmSs(s) })),
+      onChange: (id) => {
+        this.restDuration = Number(id);
+        saveRestDuration(this.restDuration);
+      },
+    }).render();
+    section.append(seg);
+
+    const startBtn = Page.el('button', {
+      className: 'button button--ghost button--block',
+      text: i18n.t('rest.start'),
+    });
+    startBtn.type = 'button';
+    this.on(startBtn, 'click', () => {
+      haptics.tap();
+      this.openRestTimer();
+    });
+    section.append(startBtn);
+
+    return section;
+  }
+
+  /** @param {string=} nextSetLabel */
+  openRestTimer(nextSetLabel) {
+    new RestTimer(document.body, {
+      seconds: this.restDuration,
+      nextSetLabel,
+    }).open();
+  }
+
   renderTodaySection() {
     const section = Page.section(i18n.t('workout.workout_log'));
     this.todayHost = Page.el('div', { className: 'log-set-list' });
@@ -266,7 +313,7 @@ export class LogPage extends Page {
     try {
       await api.del(`/api/training-logs/${set.id}`);
       haptics.success();
-      toast.show(i18n.t('workout.deleted'), { variant: 'success' });
+      toast.show(i18n.t('toasts.set_deleted'), { variant: 'success' });
     } catch (err) {
       this.todaySets = prev;
       this.renderTodaySets();
@@ -371,14 +418,21 @@ export class LogPage extends Page {
 
       if (saved.isPr) {
         haptics.success();
-        toast.show(i18n.t('workout.pr_new'), { variant: 'success' });
+        toast.show(i18n.t('toasts.pr_new'), { variant: 'success' });
       } else {
         haptics.success();
-        toast.show(i18n.t('workout.added'), { variant: 'success' });
+        toast.show(i18n.t('toasts.set_added'), { variant: 'success' });
       }
       this.resetInputs();
       this.clearDraft();
       this.refreshLastSession();
+
+      const nextSetLabel = i18n.t('rest.next_set', {
+        set: this.nextSetNumber(),
+        reps,
+        weight,
+      });
+      this.openRestTimer(nextSetLabel);
     } catch (err) {
       this.todaySets = this.todaySets.filter((s) => s.id !== optimistic.id);
       this.renderTodaySets();
@@ -496,4 +550,33 @@ function escapeHtml(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+/** @returns {number} */
+function restoreRestDuration() {
+  try {
+    const raw = globalThis.localStorage?.getItem(REST_DURATION_KEY);
+    const n = Number(raw);
+    if (REST_PRESETS.includes(n)) return n;
+  } catch {
+    /* ignore */
+  }
+  return REST_DEFAULT;
+}
+
+/** @param {number} seconds */
+function saveRestDuration(seconds) {
+  try {
+    globalThis.localStorage?.setItem(REST_DURATION_KEY, String(seconds));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** @param {number} totalSeconds */
+function formatMmSs(totalSeconds) {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const m = Math.floor(s / 60);
+  const r = s - m * 60;
+  return `${m}:${String(r).padStart(2, '0')}`;
 }
