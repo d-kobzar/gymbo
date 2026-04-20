@@ -274,19 +274,42 @@
 .measure-form {
   display: flex;
   flex-direction: column;
+  gap: var(--space-10);
+  min-width: 0;
+}
+
+.measure-form > * {
+  min-width: 0;
+}
+
+.measure-form__group {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-5);
+  min-width: 0;
 }
 
 .measure-form__group-title {
   font-family: var(--font-mono);
   font-size: var(--text-xxs);
+  font-weight: var(--weight-extrabold);
   letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-secondary);
 }
 
-.measure-form__row {
+.measure-form__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.measure-form__grid > .input-group {
+  min-width: 0;
+}
+
+.measure-form .input {
+  width: 100%;
+  min-width: 0;
 }

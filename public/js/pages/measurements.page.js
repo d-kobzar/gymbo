@@ -371,13 +371,14 @@ export class MeasurementsPage extends Page {
     /** @type {Record<string, HTMLInputElement>} */
     const inputs = {};
     for (const group of METRIC_GROUPS) {
-      form.append(
+      const groupEl = Page.el('div', { className: 'measure-form__group' });
+      groupEl.append(
         Page.el('span', {
           className: 'measure-form__group-title',
           text: i18n.t(group.titleKey),
         }),
       );
-      const grid = Page.el('div', { className: 'grid-2' });
+      const grid = Page.el('div', { className: 'measure-form__grid' });
       for (const metric of group.metrics) {
         const field = Page.el('div', { className: 'input-group' });
         field.append(
@@ -396,7 +397,8 @@ export class MeasurementsPage extends Page {
         field.append(input);
         grid.append(field);
       }
-      form.append(grid);
+      groupEl.append(grid);
+      form.append(groupEl);
     }
 
     const save = Page.el('button', {
