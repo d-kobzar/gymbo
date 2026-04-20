@@ -8,7 +8,7 @@ import {
   Table,
 } from 'sequelize-typescript';
 import { User } from '@modules/users/models/user.model';
-import { TrainingLog } from '@/training-logs/training-log.model';
+import { TrainingLog } from '@modules/training-logs/models/training-log.model';
 import { ProgramExercise } from '@/programs/program-exercise.model';
 
 @Table({

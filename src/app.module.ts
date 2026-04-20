@@ -20,7 +20,7 @@ import { UsersModule } from '@modules/users/users.module';
 import { I18nModule } from '@modules/i18n/i18n.module';
 import { StorageModule } from '@modules/storage/storage.module';
 import { ExercisesModule } from '@modules/exercises/exercises.module';
-import { TrainingLogsModule } from './training-logs/training-logs.module';
+import { TrainingLogsModule } from '@modules/training-logs/training-logs.module';
 import { MeasurementsModule } from './measurements/measurements.module';
 import { ProgramsModule } from './programs/programs.module';
 import { StatsModule } from './stats/stats.module';

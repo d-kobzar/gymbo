@@ -1,6 +1,6 @@
 import { Column, DataType, HasMany, HasOne, Model, Table } from 'sequelize-typescript';
 import { Exercise } from '@modules/exercises/models/exercise.model';
-import { TrainingLog } from '@/training-logs/training-log.model';
+import { TrainingLog } from '@modules/training-logs/models/training-log.model';
 import { BodyMeasurement } from '@/measurements/body-measurement.model';
 import { MeasurementPhoto } from '@/measurements/measurement-photo.model';
 import { Program } from '@/programs/program.model';
