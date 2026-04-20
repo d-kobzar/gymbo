@@ -40,6 +40,51 @@ questions, and items intentionally deferred from the current phase.
 - **Lint deferred.** Spec references `npm run lint`; no linter is currently
   configured. ESLint + config will be added alongside Jest in early Phase 2.
 
+### Phase 2
+
+- **Test strategy — pragmatic.** Spec §0.6 asks for a smoke test per file
+  before moving it. With 0 tests in the baseline, authoring ~40 retroactive
+  tests would balloon the phase. Compromise: a single AppModule-compile
+  smoke test (`src/app.module.spec.ts`) proves the module graph resolves;
+  per-module verification is done via `npm run build` + boot + `curl`
+  probes after each move. Spec-mandated per-service tests land in Phase 3
+  alongside the new `coach-context` code (≥ 90% on new code, ≥ 70% on
+  moved code per spec §4). Tracking as a deferred item below.
+- **ESLint flat config (v9+).** Installed eslint@10 requires
+  `eslint.config.js`, not `.eslintrc.js`. Config uses flat format.
+- **`tsc-alias` for runtime path resolution.** `tsconfig.json` `paths`
+  are compile-time only. Rather than adding a runtime resolver
+  (`tsconfig-paths/register`), we rewrite the aliases to relative
+  paths post-build via `tsc-alias`. Zero runtime cost.
+- **`@nestjs/mapped-types`** installed for `PartialType(...)` in update DTOs.
+- **Cross-module imports.** Modules that moved later into Phase 2 had
+  models referenced by modules that moved earlier via the transitional
+  `@/feature/...` alias. Every `@/feature/...` reference is gone at the
+  end of Phase 2 — all cross-module model refs go through
+  `@modules/<feature>/models/...`. Grep confirms.
+- **Bot lifecycle.** `BotService.onApplicationBootstrap` launches
+  Telegraf AFTER all `OnModuleInit` handlers fire. Update classes
+  register their listeners in `onModuleInit`, so the order is:
+  BotService (creates Telegraf) → updates (register handlers) →
+  BotService.bootstrap (calls `bot.launch()` / webhook setup).
+  This replaces the previous arrangement where `BotUpdate.onModuleInit`
+  both registered and launched.
+- **Webhook secret check** still lives in `BotController` (inline
+  `req.headers[...]` check). Moving it behind
+  `shared/guards/telegram-webhook.guard.ts` is explicitly a Phase 4
+  task — leaving the TODO comment in the controller.
+- **Tool registry generics cast.** `CoachTool<TParams, TResult>` is
+  generic in `TParams`; treating a `CoachTool[]` as the storage type
+  requires a one-line cast in `ai-coach.module.ts`' useFactory
+  (documented inline). Registered handlers remain strictly typed at
+  their own boundary.
+- **Scheduler jobs stay on `node-cron`**, not `@nestjs/schedule`.
+  Adding `@nestjs/schedule` mid-phase would be scope creep; the node-cron
+  pattern works, and moving to `@Cron()` decorators is a future mechanical
+  swap.
+- **Telegraf API drift.** `disable_web_page_preview` →
+  `link_preview_options.is_disabled` for the Telegraf version in use.
+
 ---
 
 ## Deferred items (log here instead of implementing)
