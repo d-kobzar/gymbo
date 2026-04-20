@@ -4,6 +4,7 @@ import { Exercise } from '@modules/exercises/models/exercise.model';
 import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
 import { Program } from '@modules/programs/models/program.model';
 import { TrainingLog } from '@modules/training-logs/models/training-log.model';
+import { User } from '@modules/users/models/user.model';
 import { AiThread } from './models/ai-thread.model';
 import { CoachContext } from './models/coach-context.model';
 import { AssistantService } from './services/assistant.service';
@@ -45,6 +46,7 @@ const handlerProviders = [
       Exercise,
       BodyMeasurement,
       Program,
+      User,
     ]),
   ],
   providers: [

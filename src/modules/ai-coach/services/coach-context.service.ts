@@ -8,6 +8,7 @@ import { ProgramDay } from '@modules/programs/models/program-day.model';
 import { ProgramExercise } from '@modules/programs/models/program-exercise.model';
 import { Program } from '@modules/programs/models/program.model';
 import { TrainingLog } from '@modules/training-logs/models/training-log.model';
+import { User } from '@modules/users/models/user.model';
 import { MeasurementEvents } from '@modules/measurements/events/measurement.events';
 import { ProgramEvents } from '@modules/programs/events/program.events';
 import { TrainingLogEvents } from '@modules/training-logs/events/training-log.events';
@@ -69,6 +70,7 @@ export class CoachContextService {
     @InjectModel(BodyMeasurement)
     private readonly measurementModel: typeof BodyMeasurement,
     @InjectModel(Program) private readonly programModel: typeof Program,
+    @InjectModel(User) private readonly userModel: typeof User,
   ) {}
 
   async getOrCreate(userId: number): Promise<CoachContext> {
@@ -133,12 +135,21 @@ export class CoachContextService {
 
   async buildRunInstructions(userId: number): Promise<string> {
     const ctx = await this.getOrCreate(userId);
-    const [aggregates, topPrs, program, lastSessions] = await Promise.all([
-      this.liveAggregates(userId),
-      this.topPrs(userId, 5),
-      this.currentProgram(userId),
-      this.lastSessions(userId, LAST_SESSIONS),
-    ]);
+    const [user, aggregates, topPrs, program, lastSessions, latestBody] =
+      await Promise.all([
+        this.userModel.findByPk(userId, { attributes: ['timezone', 'language'] }),
+        this.liveAggregates(userId),
+        this.topPrs(userId, 5),
+        this.currentProgram(userId),
+        this.lastSessions(userId, LAST_SESSIONS),
+        this.latestMeasurement(userId),
+      ]);
+
+    const tz = user?.timezone || 'UTC';
+    const moment = this.formatContextMoment(tz);
+    const todayDow = moment.dowKey;
+    const programLines = this.formatProgram(program, todayDow);
+    const todayPlanLine = this.formatTodaysPlan(program, todayDow);
 
     const profileLines = this.formatProfile(ctx.profile ?? {});
     const stateLines = this.formatState(aggregates);
@@ -146,10 +157,9 @@ export class CoachContextService {
       ? topPrs.map((p) => `  - ${p.name}: ${p.weight}×${p.reps}`).join('\n')
       : '  - (no logs yet)';
 
-    const programLines = this.formatProgram(program);
     const sessionsLines = this.formatLastSessions(lastSessions);
+    const measurementLines = this.formatLatestMeasurement(latestBody);
 
-    const today = new Date().toISOString().slice(0, 10);
     const summary = ctx.rollingSummary?.trim() ?? '';
     const decisions = ctx.recentDecisions ?? [];
     const decisionLines = decisions.length
@@ -160,13 +170,22 @@ export class CoachContextService {
       : '  - (none)';
 
     return [
+      'Context moment (always anchor answers to this):',
+      `- Local date: ${moment.date} (${moment.dowLabel})`,
+      `- Local time: ${moment.time} (${moment.partOfDay})`,
+      `- Timezone: ${tz}`,
+      `- Today's plan: ${todayPlanLine}`,
+      '',
       'User profile:',
       ...profileLines,
       '',
-      `Live state (as of ${today}):`,
+      'Live state:',
       ...stateLines,
       '- Top PRs:',
       prLines,
+      '',
+      'Latest body snapshot:',
+      ...measurementLines,
       '',
       'Current program:',
       ...programLines,
@@ -286,6 +305,13 @@ export class CoachContextService {
     });
   }
 
+  private async latestMeasurement(userId: number): Promise<BodyMeasurement | null> {
+    return this.measurementModel.findOne({
+      where: { userId },
+      order: [['date', 'DESC']],
+    });
+  }
+
   private async lastSessions(
     userId: number,
     count: number,
@@ -393,7 +419,7 @@ export class CoachContextService {
     return lines;
   }
 
-  private formatProgram(program: Program | null): string[] {
+  private formatProgram(program: Program | null, todayDow: string): string[] {
     if (!program) return ['  - (no program yet)'];
     const lines: string[] = [`  - ${program.name ?? 'Program'} · v${program.version}`];
     const days = [...(program.days ?? [])].sort((a, b) => {
@@ -402,18 +428,98 @@ export class CoachContextService {
       return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
     });
     for (const day of days) {
-      const idx = DAYS_ORDER.indexOf((day.day ?? '').toLowerCase());
+      const key = (day.day ?? '').toLowerCase();
+      const idx = DAYS_ORDER.indexOf(key);
       const dow = idx >= 0 ? SHORT_DOW[idx] : day.day ?? '?';
+      const marker = key === todayDow ? ' ← today' : '';
       if (day.isRest) {
-        lines.push(`  - ${dow}: rest`);
+        lines.push(`  - ${dow}: rest${marker}`);
         continue;
       }
       const exs = (day.exercises ?? [])
         .map((e) => `${e.exercise?.name ?? '?'}×${e.sets ?? '?'}`)
         .join(', ');
-      lines.push(`  - ${dow}: ${exs || '(no exercises)'}`);
+      lines.push(`  - ${dow}: ${exs || '(no exercises)'}${marker}`);
     }
     return lines;
+  }
+
+  private formatTodaysPlan(program: Program | null, todayDow: string): string {
+    if (!program) return 'no program configured';
+    const day = (program.days ?? []).find(
+      (d) => (d.day ?? '').toLowerCase() === todayDow,
+    );
+    if (!day) return 'no day defined for today — athlete can pick any session or rest';
+    if (day.isRest) return 'rest day';
+    const exs = (day.exercises ?? [])
+      .map((e) => `${e.exercise?.name ?? '?'}×${e.sets ?? '?'}`)
+      .join(', ');
+    return exs || 'no exercises configured';
+  }
+
+  private formatContextMoment(tz: string): {
+    date: string;
+    time: string;
+    dowKey: string;
+    dowLabel: string;
+    partOfDay: string;
+  } {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      weekday: 'long',
+    }).formatToParts(now);
+    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+    const weekday = get('weekday');
+    const date = `${get('year')}-${get('month')}-${get('day')}`;
+    const time = `${get('hour')}:${get('minute')}`;
+    const hourNum = Number(get('hour')) || 0;
+    const partOfDay =
+      hourNum < 5
+        ? 'late night'
+        : hourNum < 12
+          ? 'morning'
+          : hourNum < 17
+            ? 'afternoon'
+            : hourNum < 22
+              ? 'evening'
+              : 'night';
+    return {
+      date,
+      time,
+      dowKey: weekday.toLowerCase(),
+      dowLabel: weekday,
+      partOfDay,
+    };
+  }
+
+  private formatLatestMeasurement(m: BodyMeasurement | null): string[] {
+    if (!m) return ['  - (no body measurements logged yet)'];
+    const fields: Array<[string, unknown]> = [
+      ['Weight', m.weight],
+      ['Shoulders', m.shoulders],
+      ['Chest', m.chest],
+      ['Arm', m.arm],
+      ['Waist', m.waist],
+      ['Abs', m.abs],
+      ['Glutes', m.glutes],
+      ['Thigh', m.thigh],
+      ['Calf', m.calf],
+    ];
+    const present = fields
+      .filter(([, v]) => v != null)
+      .map(
+        ([k, v]) =>
+          `${k} ${Number(v).toFixed(1)} ${k === 'Weight' ? 'kg' : 'cm'}`,
+      );
+    if (present.length === 0) return [`  - (entry on ${m.date} has no values)`];
+    return [`  - ${m.date}: ${present.join(' · ')}`];
   }
 
   private formatLastSessions(
