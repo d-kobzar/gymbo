@@ -96,6 +96,47 @@
   margin-left: var(--space-1);
 }
 
+.measure-tile__row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.measure-tile__delta {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-caps);
+}
+
+.measure-delta--good {
+  color: var(--success);
+}
+
+.measure-delta--bad {
+  color: var(--danger);
+}
+
+.measure-delta--flat {
+  color: var(--text-tertiary);
+}
+
+/* Hero delta sits on the amber card; success/danger need to read
+ * against yellow background, so we invert to darker shades. */
+.measure-hero__delta.measure-delta--good {
+  color: #0e4420;
+}
+
+.measure-hero__delta.measure-delta--bad {
+  color: #7a1026;
+}
+
+.measure-hero__delta.measure-delta--flat {
+  color: rgba(0, 0, 0, 0.55);
+}
+
 .photo-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;

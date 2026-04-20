@@ -29,7 +29,12 @@ const METRIC_GROUPS = [
   },
 ];
 
-const TILE_METRICS = ['chest', 'waist', 'arm', 'thigh', 'glutes', 'shoulders'];
+const TILE_METRICS = ['waist', 'abs', 'shoulders', 'arm', 'glutes', 'thigh', 'calf'];
+
+// Metrics where an increase is an unwanted direction (fat / mass we
+// want to trim). For these, delta > 0 lights red and delta < 0 green.
+// Everything else flips: muscle-zone circumferences green-on-up.
+const RED_WHEN_UP = new Set(['weight', 'abs', 'glutes']);
 
 const PHOTO_LABELS = ['front', 'side', 'back'];
 
@@ -140,13 +145,14 @@ export class MeasurementsPage extends Page {
     const deltaStr = delta == null
       ? ''
       : `${delta > 0 ? '+' : ''}${delta.toFixed(1)} ${delta < 0 ? '↓' : '↑'}`;
+    const deltaClass = deltaToneClass('weight', delta);
     const hero = Page.el('article', { className: 'measure-hero' });
     hero.innerHTML = `
-      <span class="measure-hero__label">Weight</span>
+      <span class="measure-hero__label">${escapeHtml(i18n.t('measurements.weight'))}</span>
       <div class="measure-hero__value">
         ${weight.toFixed(1)}<span class="measure-hero__unit">kg</span>
       </div>
-      ${delta != null ? `<span class="measure-hero__delta">${deltaStr}</span>` : ''}
+      ${delta != null ? `<span class="measure-hero__delta ${deltaClass}">${deltaStr}</span>` : ''}
       <span class="measure-hero__watermark" aria-hidden="true">W</span>
     `;
     this.heroSlot.replaceChildren(hero);
@@ -155,15 +161,26 @@ export class MeasurementsPage extends Page {
   renderGrid() {
     if (!this.gridSlot) return;
     const latest = this.history[0] ?? {};
+    const previous = this.history[1];
     this.gridSlot.replaceChildren();
     for (const id of TILE_METRICS) {
       const value = latest[id];
+      const prevValue = previous?.[id];
+      const delta =
+        value != null && prevValue != null
+          ? Number(value) - Number(prevValue)
+          : null;
+      const deltaTag =
+        delta != null && Math.abs(delta) >= 0.05
+          ? `<span class="measure-tile__delta ${deltaToneClass(id, delta)}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</span>`
+          : '';
       const el = Page.el('div', { className: 'measure-tile' });
       el.innerHTML = `
         <span class="measure-tile__label">${escapeHtml(i18n.t(`measurements.${id}`))}</span>
-        <div>
+        <div class="measure-tile__row">
           <span class="measure-tile__value">${value != null ? Number(value).toFixed(1) : '—'}</span>
           <span class="measure-tile__unit">cm</span>
+          ${deltaTag}
         </div>
       `;
       this.gridSlot.append(el);
@@ -569,6 +586,22 @@ export class MeasurementsPage extends Page {
 
 function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Classify a metric's delta as "good" or "bad" to drive the
+ * green/red color. For weight / belly / glutes an increase is the
+ * unwanted direction; for everything else an increase = muscle
+ * gain = wanted.
+ * @param {string} metricId
+ * @param {number | null | undefined} delta
+ * @returns {string}
+ */
+function deltaToneClass(metricId, delta) {
+  if (delta == null || Math.abs(delta) < 0.05) return 'measure-delta--flat';
+  const up = delta > 0;
+  const bad = RED_WHEN_UP.has(metricId) ? up : !up;
+  return bad ? 'measure-delta--bad' : 'measure-delta--good';
 }
 
 function todayIso() {
