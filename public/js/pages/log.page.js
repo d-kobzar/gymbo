@@ -51,8 +51,6 @@ export class LogPage extends Page {
     this.lastSessionEl = null;
     /** @type {HTMLElement | null} */
     this.todayHost = null;
-    /** @type {HTMLButtonElement | null} */
-    this.fallbackBtn = null;
     this.date = todayIso();
   }
 
@@ -142,18 +140,8 @@ export class LogPage extends Page {
       this.numericInput('rir', i18n.t('workout.rir'), { min: 0, max: 10 }),
     );
     wrap.append(grid);
-
-    // Fallback in-page Add Set button — hidden when Telegram MainButton
-    // is available. Always rendered so the page works in plain browsers.
-    const fallback = document.createElement('button');
-    fallback.type = 'button';
-    fallback.className = 'button button--primary button--lg button--block';
-    fallback.textContent = i18n.t('workout.add_set');
-    this.on(fallback, 'click', this.submit);
-    this.fallbackBtn = fallback;
-    wrap.append(fallback);
-    if (telegram.isAvailable) fallback.hidden = true;
-
+    // Submission flows exclusively through Telegram MainButton — no
+    // in-page duplicate button under the menu.
     return wrap;
   }
 

@@ -31,11 +31,17 @@ export class Component {
   /** Subclasses override. */
   render() {}
 
-  /** Subclasses may override; must call super.destroy() first. */
+  /**
+   * Subclasses may override; must call super.destroy() first.
+   *
+   * Does NOT touch `this.root.innerHTML`. Overlay components like
+   * BottomSheet mount into document.body — clearing that would wipe
+   * the entire app. Page-level teardown is handled by the router
+   * which owns the container and clears it between navigations.
+   */
   destroy() {
     this.controller.abort();
     this.controller = new AbortController();
-    this.root.innerHTML = '';
   }
 
   /**
