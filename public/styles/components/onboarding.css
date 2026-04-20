@@ -70,8 +70,8 @@
 .onboarding-body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-7);
-  padding-bottom: var(--space-9);
+  gap: var(--space-9);
+  padding-bottom: var(--space-10);
   animation: onboarding-fade var(--duration-medium) var(--ease-out);
   min-width: 0;
 }
@@ -104,7 +104,7 @@
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: var(--space-3);
-  padding: var(--space-5) 0 calc(var(--space-7) + var(--safe-bottom));
+  padding: var(--space-7) 0 calc(var(--space-9) + var(--safe-bottom));
   background: linear-gradient(
     180deg,
     transparent 0%,
@@ -117,7 +117,7 @@
 .onboarding-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .onboarding-options--block {
@@ -182,7 +182,7 @@
 .onboarding-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -236,7 +236,7 @@
 .onboarding-measurements {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .onboarding-measurements > .input-group {
