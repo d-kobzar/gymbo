@@ -7,17 +7,17 @@ import { BotService } from '../services/bot.service';
 /**
  * /start — two flows:
  *
- * 1. First-time user: create the row from Telegram metadata, then
- *    ask which language to use. The actual welcome + Open App button
- *    are sent by the callback-query handler once the user picks.
- *    The language prompt is written in all three supported
- *    languages so the user can pick without a pre-set lang.
+ * 1. Not-yet-onboarded user (no onboardedAt): ask which language to
+ *    use. The actual welcome + Open App button are sent by the
+ *    callback-query handler once the user picks. The prompt is
+ *    written in all three supported languages so the user can pick
+ *    without a pre-set lang. We key off `onboardedAt` rather than
+ *    "row just created" because every /start ping we already got
+ *    during testing created a row — returning pre-onboarding users
+ *    should still see the prompt.
  *
- * 2. Returning user: send the localized welcome + Open App directly.
- *
- * Using `chatId` instead of Telegram's provisional `language_code`
- * as the trigger lets returning users who already picked Russian
- * skip the prompt.
+ * 2. Onboarded user: send the localized welcome + Open App directly.
+ *    Language is stable at this point (changeable via /settings).
  */
 @Injectable()
 export class StartUpdate implements OnModuleInit {
@@ -31,12 +31,10 @@ export class StartUpdate implements OnModuleInit {
     if (!bot) return;
 
     bot.command('start', async (ctx) => {
-      const { user, created } = await this.botService.findOrCreateUserWithFlag(
-        ctx.from,
-      );
+      const user = await this.botService.findOrCreateUser(ctx.from);
       await user.update({ chatId: ctx.chat.id });
 
-      if (created) {
+      if (!user.onboardedAt) {
         const prompt = [
           'Choose your language:',
           'Оберіть мову:',
