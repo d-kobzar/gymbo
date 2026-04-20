@@ -38,6 +38,14 @@ export class SegmentedControl extends Component {
       const btn = target.closest('.segmented-control__option');
       if (!(btn instanceof HTMLElement) || !btn.dataset.id) return;
       haptics.select();
+      // Self-manage active state — callers only pass onChange, they
+      // don't re-render us. Without this the visual selection would
+      // stick on whatever was initially `value`.
+      for (const el of node.querySelectorAll('.segmented-control__option')) {
+        const isActive = el === btn;
+        el.classList.toggle('segmented-control__option--active', isActive);
+        el.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      }
       const onChange = /** @type {((id: string) => void) | undefined} */ (this.props.onChange);
       onChange?.(btn.dataset.id);
     });
