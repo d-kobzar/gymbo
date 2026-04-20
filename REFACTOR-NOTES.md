@@ -70,3 +70,113 @@ questions, and items intentionally deferred from the current phase.
 _None open at the moment. Log with the exact `CLAUDE-QUESTION:` prefix in
 code comments when you need to ask the user a blocking question; promote the
 resolution here when it's answered._
+
+---
+
+## Design reference (Phase 5 / 6 source of truth)
+
+The user has confirmed the frontend must match `design/summary_standalone.html`.
+The standalone is a compiled bundle (~1.5 MB with inlined assets). The real
+source of truth is under `design/src/`:
+
+- `design/src/v2-main.jsx` — Home, Log, Rest, Coach frames (V2 = dark energetic)
+- `design/src/v2-more.jsx` — Progress, Program, Measurements, Exercises, More, Settings
+- `design/src/frame.jsx` — device chrome + bottom TabBar
+- `design/src/i18n.jsx` — ru/en/ua strings
+
+**V1 (light) variants exist but V2 is canonical.** Do not mix. When rebuilding
+pages in Phase 6, read the V2 JSX file as the component spec.
+
+### Design DNA (in one paragraph)
+
+Dark canvas (`#0B0B0E`), amber accent (`#FFB020`), Archivo display + JetBrains
+Mono for numerics. Contrast over ornament: borders and surfaces (no drop
+shadows in-app), monospace labels in uppercase with wide tracking (+1.5 to +2),
+large display weights (800–900), minimal motion (0.2s toggle; SVG-driven
+progress). Feels like a gym instrument, not a social app.
+
+### Token baseline (to seed `styles/tokens.css` in Phase 5)
+
+Colors (V2 dark):
+- `--surface-base` `#0B0B0E` · `--surface-raised` `#16171B` · `--surface-elevated` `#1E1F24`
+- `--text-primary` `#F5F3EE` · `--text-secondary` `#8A8B93` · `--text-tertiary` `#585962`
+- `--border-subtle` `rgba(255,255,255,0.07)` · `--border-default` `rgba(255,255,255,0.12)`
+- `--accent` `#FFB020` · `--accent-contrast` `#000` · `--accent-deep` `#FF8A00`
+- `--success` `#4ADE80` · `--danger` `#F43F5E`
+
+Radii: 4 / 10 / 12 / 14 / 16 / 18 / 20 / 22 / 100 (pill)
+Spacing: 4 / 6 / 8 / 10 / 12 / 14 / 16 / 18 / 20 / 30 / 80 (nav clearance)
+Type scale: labels 10–11 (mono, +1.5 tracking, caps) · body 13–15 · display 24 / 30 / 34 · hero-numeric 72
+
+### Conflicts with the spec's Phase 5 (must resolve before implementing)
+
+1. **Telegram theme integration vs fixed palette.** Spec §2.1/5 requires
+   `var(--tg-theme-bg-color, fallback)`; the design uses a fixed dark palette.
+   Proposed reconciliation: keep the fixed V2 tokens as defaults, but expose
+   a CSS opt-in media/attribute (`[data-theme="tg"]`) that maps `--surface-*`,
+   `--text-*`, `--accent` to `var(--tg-theme-*)`. Enabled only when the
+   Mini App's `themeParams` are non-default. Decide with the user in Phase 5.
+
+2. **Fonts.** Design uses Archivo (display) + JetBrains Mono (numerics).
+   Spec says "system stack only if not using system stack" — implying custom
+   fonts are acceptable. Plan: add `<link rel="preconnect">` + `<link>` to
+   Google Fonts (or self-host WOFF2) in `index.html`, with the system stack
+   as fallback.
+
+3. **Missing states in the design** (drive Phase 5/6 component fill-in,
+   inferred in the V2 idiom):
+   - Loading skeletons — shimmer pulse on `--surface-raised`.
+   - Empty states — centered icon + `--text-secondary` copy + accent CTA.
+   - Toast / snackbar — bottom-anchored above tab bar, 44px height, 14px
+     radius, `--surface-elevated` bg, accent/danger left bar.
+   - Input focus — 1px `--accent` border + subtle inner shadow.
+   - Error — `--danger` border + monospace uppercase caption under field.
+
+### What this changes in Phase 5 scope
+
+- Token values move from the spec's snippet to the values above.
+- Add font loading to `index.html` via Google Fonts.
+- Add `--accent-deep`, `--surface-elevated` to the token set (not in spec).
+- Telegram theme integration is an opt-in, not a hard requirement.
+
+### User-confirmed decisions (2026-04-20)
+
+1. **V2 fixed dark palette as default**, Telegram theme as opt-in via
+   `[data-theme="tg"]` attribute that remaps `--surface-*` / `--text-*` /
+   `--accent` onto `var(--tg-theme-*)`. Enabled only when the Mini App's
+   `themeParams` are non-default.
+2. **Fonts via Google Fonts** (Archivo + JetBrains Mono). Preconnect in
+   `index.html`, system stack as fallback.
+3. **Use all design values verbatim** — this is the target, not a
+   suggestion. Code must remain maximally clean despite being vanilla
+   JS / plain HTML / no framework.
+
+### Vanilla-JS cleanliness contract (Phase 5 / 6)
+
+The absence of a framework is not an excuse for messy code. Enforce:
+
+- **One responsibility per file.** A component, a page, a core service.
+- **ES modules with named exports**, never globals. No `window.Foo`.
+- **Class-based components** with `constructor(root, props)`, `render()`,
+  `destroy()` — explicit lifecycle, no hidden DOM leaks.
+- **No jQuery, no utility libraries.** Ship zero third-party runtime
+  deps except a lightweight chart (and only if SVG-by-hand is too much).
+- **State via the pub-sub store** (`core/store.js`), never ad-hoc globals
+  or `window.*`. Pages subscribe on `render()`, unsubscribe on `destroy()`.
+- **No inline styles in JS** except dynamic values (computed width,
+  transform). Everything static goes in `styles/components/*.css`.
+- **Strict event hygiene.** Every `addEventListener` has a matching
+  `removeEventListener` in `destroy()`, or uses an `AbortController`.
+- **No hex/rgb colors outside `tokens.css`.** Grep must return zero
+  matches in `js/` and `styles/components/`.
+- **No string interpolation for HTML.** Use `<template>` elements or
+  document.createElement; if you must interpolate, escape user input.
+- **JSDoc types on all exports** so TypeScript tooling catches misuse
+  without a compile step.
+- **Zero `console.log` in production paths** — wrap dev logs behind a
+  `debug(...)` helper that no-ops when `NODE_ENV==='production'`.
+- **One CSS class per visual concern.** No `.button-primary-large-icon-rounded`
+  monsters; compose: `.button .button--primary .button--lg`.
+
+These rules are the Phase 5 / 6 acceptance criteria in addition to the
+functional ones in the spec.
