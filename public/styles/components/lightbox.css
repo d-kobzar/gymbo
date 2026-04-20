@@ -1,0 +1,90 @@
+/* Fullscreen photo viewer. Black canvas, centered image, chevrons
+ * on the sides, tap outside to close. Above z-modal so it clears
+ * BottomSheet, RestTimer, and the bottom nav. */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: rgba(0, 0, 0, 0.96);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--space-13) + var(--safe-top)) var(--space-7)
+    calc(var(--space-10) + var(--safe-bottom));
+  opacity: 0;
+  transition: opacity var(--duration-medium) var(--ease-out);
+}
+
+.lightbox--open {
+  opacity: 1;
+}
+
+.lightbox__img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.lightbox__close {
+  position: absolute;
+  top: calc(var(--space-7) + var(--safe-top));
+  right: var(--space-7);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.lightbox__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.lightbox__nav--prev {
+  left: var(--space-5);
+}
+
+.lightbox__nav--next {
+  right: var(--space-5);
+}
+
+.lightbox__nav[disabled] {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.lightbox__caption {
+  position: absolute;
+  bottom: calc(var(--space-10) + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}

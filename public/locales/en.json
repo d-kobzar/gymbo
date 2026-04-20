@@ -123,7 +123,9 @@
     "no_data_description": "Log weight and circumferences to track your composition over time.",
     "group_core": "Core",
     "group_upper": "Upper",
-    "group_lower": "Lower"
+    "group_lower": "Lower",
+    "history": "Timeline",
+    "history_empty": "Only one entry so far — log another to see progression."
   },
   "exercises": {
     "title": "Exercises",
