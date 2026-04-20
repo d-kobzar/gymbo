@@ -20,11 +20,21 @@ const SUMMARY_MODEL = 'gpt-4o-mini';
 const SUMMARY_MAX_TOKENS = 300;
 const SUMMARY_TAIL_SIZE = 20;
 
-const SUMMARY_SYSTEM_PROMPT = `You maintain a compressed rolling summary of a strength coaching conversation.
-Preserve: athlete's declared goals, notable PRs, decisions about programming changes,
-injuries or constraints the athlete mentioned, and any pending next-session plan.
-Drop small talk, pleasantries, and specifics the coach can re-derive from training logs.
-Output a single paragraph under 200 tokens. No bullet lists. No preamble.`;
+const SUMMARY_SYSTEM_PROMPT = `You maintain a compressed rolling NARRATIVE of a strength coaching conversation.
+
+Preserve ONLY:
+- The athlete's self-reported state across sessions (recurring soreness, sleep/stress/energy patterns they mentioned, recovery issues).
+- Decisions or adjustments the athlete and coach landed on, and the WHY behind them.
+- Behavioral patterns (consistency issues, time constraints, strong preferences, things that motivate or demotivate).
+- Pending next-session plan only if it was explicitly agreed.
+
+Drop entirely — this data is injected fresh every turn, DO NOT duplicate it here:
+- The athlete's current training program (days, exercises, sets, frequency). The program changes; your mention of it rots.
+- Current personal records, max weights, total sets, latest bodyweight, last session's numbers. All live.
+- Raw circumferences, goal labels, equipment list, injury list, dates of birth. All in the profile.
+- Small talk, pleasantries, greetings.
+
+Output a single paragraph under 200 tokens. No bullet lists. No preamble. No mention of specific exercise names, sets, reps, or weights — refer to "the current program" or "the prescribed block" in the abstract.`;
 
 /**
  * Rolling-summary regenerator. Fires asynchronously after the coach

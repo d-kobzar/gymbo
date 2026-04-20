@@ -155,15 +155,17 @@ export class CoachContextService {
     const tz = user?.timezone || 'UTC';
     const moment = this.formatContextMoment(tz);
     const todayDow = moment.dowKey;
-    const programLines = this.formatProgram(program, todayDow);
-    const todayPlanLine = this.formatTodaysPlan(program, todayDow);
+    const profile = ctx.profile ?? {};
 
-    const profileLines = this.formatProfile(ctx.profile ?? {});
+    const profileLines = this.formatProfile(profile);
+    const healthLines = this.formatHealth(profile);
     const stateLines = this.formatState(aggregates);
     const prLines = topPrs.length
       ? topPrs.map((p) => `  - ${p.name}: ${p.weight}×${p.reps}`).join('\n')
       : '  - (no logs yet)';
 
+    const programLines = this.formatProgram(program, todayDow);
+    const todayPlanLine = this.formatTodaysPlan(program, todayDow);
     const sessionsLines = this.formatLastSessions(lastSessions);
     const measurementLines = this.formatLatestMeasurement(latestBody);
 
@@ -177,33 +179,44 @@ export class CoachContextService {
       : '  - (none)';
 
     return [
-      'Context moment (always anchor answers to this):',
+      '### CONTEXT MOMENT',
       `- Local date: ${moment.date} (${moment.dowLabel})`,
       `- Local time: ${moment.time} (${moment.partOfDay})`,
       `- Timezone: ${tz}`,
       `- Today's plan: ${todayPlanLine}`,
       '',
-      'User profile:',
+      '### GROUND TRUTH — authoritative, pulled fresh every turn.',
+      '### If anything below contradicts the HISTORICAL NARRATIVE further down,',
+      '### the ground truth wins. Cite from here when stating facts about the athlete.',
+      '',
+      '## Athlete profile',
       ...profileLines,
       '',
-      'Live state:',
+      '## Health & constraints',
+      ...healthLines,
+      '',
+      '## Live metrics',
       ...stateLines,
       '- Top PRs:',
       prLines,
       '',
-      'Latest body snapshot:',
+      '## Latest body snapshot',
       ...measurementLines,
       '',
-      'Current program:',
+      '## Current program',
       ...programLines,
       '',
-      `Last ${LAST_SESSIONS} sessions:`,
+      `## Last ${LAST_SESSIONS} sessions (most recent first)`,
       ...sessionsLines,
       '',
-      'Rolling summary of past conversations:',
+      '### HISTORICAL NARRATIVE — compressed memory of past conversations.',
+      '### May be out of date. If it references a different program, PRs, or body stats',
+      '### than the GROUND TRUTH above, trust the ground truth.',
+      '',
+      '## Rolling summary',
       summary || '(empty — this is one of the first sessions)',
       '',
-      'Recent decisions:',
+      '## Recent decisions',
       decisionLines,
     ].join('\n');
   }
@@ -215,9 +228,6 @@ export class CoachContextService {
   @OnEvent(MeasurementEvents.Created)
   @OnEvent(MeasurementEvents.Updated)
   @OnEvent(MeasurementEvents.Deleted)
-  @OnEvent(ProgramEvents.Created)
-  @OnEvent(ProgramEvents.Updated)
-  @OnEvent(ProgramEvents.Deleted)
   async onDomainEvent(payload: { userId?: number }): Promise<void> {
     if (!payload?.userId) return;
     try {
@@ -225,6 +235,31 @@ export class CoachContextService {
     } catch (err) {
       this.logger.warn(
         `markStale failed for userId=${payload.userId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /** Programs change the entire skeleton of the athlete's week. A
+   * summary that mentions the old program structure goes immediately
+   * stale — and the coach can't tell whether "the 5-day split" in
+   * the narrative refers to the now-replaced program or the new one.
+   *
+   * Easier than teaching everyone to distrust the summary: wipe it.
+   * It rebuilds naturally from the next coach turns, this time under
+   * the updated summarizer prompt (no program specifics persisted). */
+  @OnEvent(ProgramEvents.Created)
+  @OnEvent(ProgramEvents.Updated)
+  @OnEvent(ProgramEvents.Deleted)
+  async onProgramChanged(payload: { userId?: number }): Promise<void> {
+    if (!payload?.userId) return;
+    try {
+      await this.contextModel.update(
+        { rollingSummary: null, summaryStale: false, messagesSinceSummary: 0 },
+        { where: { userId: payload.userId } },
+      );
+    } catch (err) {
+      this.logger.warn(
+        `program-change summary wipe failed for userId=${payload.userId}: ${(err as Error).message}`,
       );
     }
   }
@@ -386,7 +421,7 @@ export class CoachContextService {
     const lines: string[] = [];
     lines.push(`- Goal: ${profile.goal ?? 'not set'}`);
     lines.push(`- Level: ${profile.experienceLevel ?? 'not set'}`);
-    lines.push(`- Days/week: ${profile.trainingDaysPerWeek ?? 'not set'}`);
+    lines.push(`- Days/week available: ${profile.trainingDaysPerWeek ?? 'not set'}`);
     lines.push(
       `- Equipment: ${(profile.equipment?.length ?? 0) > 0 ? profile.equipment!.join(', ') : 'not set'}`,
     );
@@ -396,12 +431,18 @@ export class CoachContextService {
     lines.push(
       `- Height: ${profile.heightCm != null ? `${profile.heightCm} cm` : 'not set'}`,
     );
-    lines.push(
-      `- Injuries: ${(profile.injuries?.length ?? 0) > 0 ? profile.injuries!.join('; ') : 'none reported'}`,
-    );
-    if (profile.healthNotes?.trim()) {
-      lines.push(`- Health notes: ${profile.healthNotes.trim()}`);
-    }
+    return lines;
+  }
+
+  private formatHealth(profile: CoachProfile): string[] {
+    const lines: string[] = [];
+    const injuries =
+      (profile.injuries?.length ?? 0) > 0
+        ? profile.injuries!.join('; ')
+        : 'none reported';
+    lines.push(`- Injuries: ${injuries}`);
+    const notes = profile.healthNotes?.trim();
+    lines.push(`- Health notes: ${notes || 'none reported'}`);
     return lines;
   }
 
