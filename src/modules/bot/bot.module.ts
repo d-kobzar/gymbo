@@ -4,6 +4,8 @@ import { AiCoachModule } from '@modules/ai-coach/ai-coach.module';
 import { User } from '@modules/users/models/user.model';
 import { BotController } from './bot.controller';
 import { BotService } from './services/bot.service';
+import { BotThrottler } from './services/bot-throttler.service';
+import { SessionService } from './services/session.service';
 import { CallbackQueryUpdate } from './updates/callback-query.update';
 import { CommandsUpdate } from './updates/commands.update';
 import { StartUpdate } from './updates/start.update';
@@ -16,6 +18,8 @@ import { TextMessageUpdate } from './updates/text-message.update';
   ],
   controllers: [BotController],
   providers: [
+    BotThrottler,
+    SessionService,
     BotService,
     // Registration order matters — command handlers must register
     // before the catch-all text handler so /start etc. resolve first.
@@ -24,6 +28,6 @@ import { TextMessageUpdate } from './updates/text-message.update';
     CallbackQueryUpdate,
     TextMessageUpdate,
   ],
-  exports: [BotService],
+  exports: [BotService, SessionService],
 })
 export class BotModule {}
