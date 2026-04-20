@@ -23,7 +23,7 @@ const EQUIPMENT = [
   'bodyweight',
   'cables',
 ] as const;
-const SEXES = ['male', 'female', 'other'] as const;
+const SEXES = ['male', 'female'] as const;
 
 export class InitialMeasurementDto {
   @IsNumber() @Min(20) @Max(400) weight!: number;
@@ -39,7 +39,7 @@ export class InitialMeasurementDto {
 
 export class OnboardingProfileDto {
   @IsIn(SEXES as unknown as string[])
-  sex!: 'male' | 'female' | 'other';
+  sex!: 'male' | 'female';
 
   /** ISO date (YYYY-MM-DD) — we store the raw string to avoid TZ drift. */
   @IsDateString()

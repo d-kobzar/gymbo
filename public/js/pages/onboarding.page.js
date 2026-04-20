@@ -7,7 +7,7 @@ import { i18n } from '../core/i18n.js';
 const DRAFT_KEY = 'gymbo_onboarding_draft';
 const STEP_COUNT = 6;
 
-const SEX_IDS = /** @type {const} */ (['male', 'female', 'other']);
+const SEX_IDS = /** @type {const} */ (['male', 'female']);
 const GOAL_IDS = /** @type {const} */ (['hypertrophy', 'strength', 'cut', 'maintenance']);
 const LEVEL_IDS = /** @type {const} */ (['beginner', 'intermediate', 'advanced']);
 const EQUIPMENT_IDS = /** @type {const} */ ([

@@ -17,7 +17,7 @@ export type CoachEquipment =
   | 'bodyweight'
   | 'cables';
 
-export type CoachSex = 'male' | 'female' | 'other';
+export type CoachSex = 'male' | 'female';
 
 export interface CoachProfile {
   goal?: CoachGoal;
