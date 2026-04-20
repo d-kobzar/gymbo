@@ -19,17 +19,14 @@ export class GetExerciseProgressHandler
 {
   readonly name = 'get_exercise_progress';
   readonly definition = {
-    type: 'function' as const,
-    function: {
-      name: this.name,
-      description: 'Get progress over time for a specific exercise',
-      parameters: {
-        type: 'object' as const,
-        properties: {
-          exerciseName: { type: 'string', description: 'Exercise name' },
-        },
-        required: ['exerciseName'],
+    name: this.name,
+    description: 'Get progress over time for a specific exercise',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        exerciseName: { type: 'string', description: 'Exercise name' },
       },
+      required: ['exerciseName'],
     },
   };
 

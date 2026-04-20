@@ -12,12 +12,9 @@ export class GetCurrentProgramHandler
 {
   readonly name = 'get_current_program';
   readonly definition = {
-    type: 'function' as const,
-    function: {
-      name: this.name,
-      description: 'Get the current training program with days and exercises',
-      parameters: { type: 'object' as const, properties: {}, required: [] },
-    },
+    name: this.name,
+    description: 'Get the current training program with days and exercises',
+    parameters: { type: 'object' as const, properties: {}, required: [] },
   };
 
   constructor(@InjectModel(Program) private readonly programModel: typeof Program) {}

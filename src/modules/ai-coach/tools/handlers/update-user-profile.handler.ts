@@ -16,34 +16,31 @@ export class UpdateUserProfileHandler
 {
   readonly name = 'update_user_profile';
   readonly definition = {
-    type: 'function' as const,
-    function: {
-      name: this.name,
-      description:
-        'Persist structured athlete profile facts across sessions. Call this when the user tells you their goal, experience level, equipment, training frequency, or injuries — not when they ask about them.',
-      parameters: {
-        type: 'object' as const,
-        properties: {
-          goal: {
-            type: 'string',
-            enum: ['hypertrophy', 'strength', 'cut', 'maintenance'],
-          },
-          experienceLevel: {
-            type: 'string',
-            enum: ['beginner', 'intermediate', 'advanced'],
-          },
-          trainingDaysPerWeek: { type: 'number', minimum: 1, maximum: 7 },
-          equipment: {
-            type: 'array',
-            items: {
-              type: 'string',
-              enum: ['barbell', 'dumbbell', 'machines', 'bodyweight', 'cables'],
-            },
-          },
-          injuries: { type: 'array', items: { type: 'string' } },
+    name: this.name,
+    description:
+      'Persist structured athlete profile facts across sessions. Call this when the user tells you their goal, experience level, equipment, training frequency, or injuries — not when they ask about them.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        goal: {
+          type: 'string',
+          enum: ['hypertrophy', 'strength', 'cut', 'maintenance'],
         },
-        additionalProperties: false,
+        experienceLevel: {
+          type: 'string',
+          enum: ['beginner', 'intermediate', 'advanced'],
+        },
+        trainingDaysPerWeek: { type: 'number', minimum: 1, maximum: 7 },
+        equipment: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['barbell', 'dumbbell', 'machines', 'bodyweight', 'cables'],
+          },
+        },
+        injuries: { type: 'array', items: { type: 'string' } },
       },
+      additionalProperties: false,
     },
   };
 

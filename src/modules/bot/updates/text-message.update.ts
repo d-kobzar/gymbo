@@ -11,6 +11,11 @@ import { BotService } from '../services/bot.service';
  * among Telegraf's middleware chain (Telegraf preserves registration
  * order, and BotModule declares this update after the command
  * updates).
+ *
+ * Messages are NOT processed inline. They're enqueued — the coach
+ * module debounces (default 15s) so a user who sends 5 short lines
+ * in quick succession gets one LLM call that sees all of them, and
+ * the reply arrives out-of-band via BotService.sendToChat.
  */
 @Injectable()
 export class TextMessageUpdate implements OnModuleInit {
@@ -32,16 +37,17 @@ export class TextMessageUpdate implements OnModuleInit {
       let user = await this.userModel.findOne({ where: { telegramId: ctx.from.id } });
       if (!user) {
         user = await this.botService.findOrCreateUser(ctx.from);
+      }
+      if (user.chatId !== ctx.chat.id) {
         await user.update({ chatId: ctx.chat.id });
       }
       const lang = user.language || 'en';
 
       try {
         await ctx.sendChatAction('typing');
-        const reply = await this.coachService.chat(user.id, ctx.message.text);
-        await this.botService.sendFormatted(ctx, reply);
+        await this.coachService.enqueue(user.id, ctx.message.text);
       } catch (err) {
-        this.logger.error(`Coach chat error: ${(err as Error).message ?? err}`);
+        this.logger.error(`Coach enqueue error: ${(err as Error).message ?? err}`);
         await ctx.reply(this.i18n.t('coach.error', lang));
       }
     });

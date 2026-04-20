@@ -5,7 +5,6 @@ import { BodyMeasurement } from '@modules/measurements/models/body-measurement.m
 import { MeasurementPhoto } from '@modules/measurements/models/measurement-photo.model';
 import { Program } from '@modules/programs/models/program.model';
 import { NotificationSetting } from '@modules/notifications/models/notification-setting.model';
-import { AiThread } from '@modules/ai-coach/models/ai-thread.model';
 
 @Table({ tableName: 'Users', timestamps: true })
 export class User extends Model {
@@ -47,7 +46,4 @@ export class User extends Model {
 
   @HasOne(() => NotificationSetting)
   notificationSetting!: NotificationSetting;
-
-  @HasOne(() => AiThread)
-  aiThread!: AiThread;
 }

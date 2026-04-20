@@ -15,17 +15,14 @@ export interface GetWorkoutsParams {
 export class GetWorkoutsHandler implements CoachTool<GetWorkoutsParams, TrainingLog[]> {
   readonly name = 'get_workouts';
   readonly definition = {
-    type: 'function' as const,
-    function: {
-      name: this.name,
-      description: 'Get recent workout logs. Optionally filter by date or exercise name.',
-      parameters: {
-        type: 'object' as const,
-        properties: {
-          date: { type: 'string', description: 'Filter by date (YYYY-MM-DD)' },
-          exerciseName: { type: 'string', description: 'Filter by exercise name' },
-          limit: { type: 'number', description: 'Max records (default 20)' },
-        },
+    name: this.name,
+    description: 'Get recent workout logs. Optionally filter by date or exercise name.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        date: { type: 'string', description: 'Filter by date (YYYY-MM-DD)' },
+        exerciseName: { type: 'string', description: 'Filter by exercise name' },
+        limit: { type: 'number', description: 'Max records (default 20)' },
       },
     },
   };

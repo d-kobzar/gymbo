@@ -1,5 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import {
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -35,6 +36,14 @@ export class EnvSchema {
 
   @IsString()
   OPENAI_API_KEY!: string;
+
+  @IsOptional()
+  @IsIn(['openai'])
+  LLM_PROVIDER?: string;
+
+  @IsOptional()
+  @IsString()
+  LLM_MODEL?: string;
 
   @IsUrl({ require_tld: false })
   B2_ENDPOINT!: string;

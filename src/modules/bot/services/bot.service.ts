@@ -117,6 +117,30 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
     }
   }
 
+  /** Same normalization as sendFormatted but targets a raw chatId
+   * instead of a Telegraf Context (used when the reply is produced
+   * out-of-band — e.g. the debounced coach queue). */
+  async sendToChat(chatId: number, text: string): Promise<void> {
+    if (!this.bot) return;
+    const html = toTelegramHtml(text);
+    for (const chunk of chunkForTelegram(html)) {
+      try {
+        await this.bot.telegram.sendMessage(chatId, chunk, {
+          parse_mode: 'HTML',
+          link_preview_options: { is_disabled: true },
+        });
+      } catch {
+        try {
+          await this.bot.telegram.sendMessage(chatId, this.stripHtml(chunk));
+        } catch (err) {
+          this.logger.error(
+            `sendToChat fallback failed for ${chatId}: ${(err as Error).message}`,
+          );
+        }
+      }
+    }
+  }
+
   async findOrCreateUser(tgUser: TelegramFromUser): Promise<User> {
     const lang = this.i18n.detectLang(tgUser.language_code);
     let user = await this.userModel.findOne({ where: { telegramId: tgUser.id } });

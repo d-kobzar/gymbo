@@ -1,10 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
+import { InjectModel } from '@nestjs/sequelize';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { Op } from 'sequelize';
 import OpenAI from 'openai';
+import type { LlmConfig } from '@core/config/llm.config';
 import type { OpenAIConfig } from '@core/config/openai.config';
+import { CoachMessage } from '../models/coach-message.model';
 import { CoachContextService } from './coach-context.service';
-import { ThreadManagerService } from './thread-manager.service';
 
 export const COACH_SUMMARY_REQUESTED = 'coach-context.summary-requested';
 
@@ -12,9 +16,9 @@ export interface SummaryRequestedPayload {
   userId: number;
 }
 
-const MAX_TAIL_MESSAGES = 20;
 const SUMMARY_MODEL = 'gpt-4o-mini';
 const SUMMARY_MAX_TOKENS = 300;
+const SUMMARY_TAIL_SIZE = 20;
 
 const SUMMARY_SYSTEM_PROMPT = `You maintain a compressed rolling summary of a strength coaching conversation.
 Preserve: athlete's declared goals, notable PRs, decisions about programming changes,
@@ -23,27 +27,32 @@ Drop small talk, pleasantries, and specifics the coach can re-derive from traini
 Output a single paragraph under 200 tokens. No bullet lists. No preamble.`;
 
 /**
- * Asynchronous rolling-summary regenerator. Listens for
- * COACH_SUMMARY_REQUESTED events that AssistantService fires after
- * a completed Run. Runs a short chat.completions call with the
- * previous summary + recent thread tail; writes the result back to
- * CoachContext.
+ * Rolling-summary regenerator. Fires asynchronously after the coach
+ * finishes a batch — reads the tail of CoachMessages from the DB,
+ * compresses (previous summary + tail) into a new paragraph, writes
+ * it back to CoachContext, and marks the consumed messages with
+ * summarizedAt so the GC cron can delete them after the retention
+ * window.
  *
- * Kept out of the request path — failures here don't bubble up to
- * the chat reply.
+ * Intentionally pinned to OpenAI for now — gpt-4o-mini is cheap and
+ * fast for summarization and doesn't need the provider abstraction.
+ * If/when a user wants full provider independence we can route this
+ * through LlmProvider too.
  */
 @Injectable()
 export class RollingSummaryService {
   private readonly logger = new Logger(RollingSummaryService.name);
   private readonly client: OpenAI | null;
+  private readonly gcDays: number;
 
   constructor(
     config: ConfigService,
     private readonly contextService: CoachContextService,
-    private readonly threadManager: ThreadManagerService,
+    @InjectModel(CoachMessage) private readonly messageModel: typeof CoachMessage,
   ) {
     const { apiKey } = config.getOrThrow<OpenAIConfig>('openai');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
+    this.gcDays = config.getOrThrow<LlmConfig>('llm').messageGcDays;
   }
 
   @OnEvent(COACH_SUMMARY_REQUESTED)
@@ -58,38 +67,51 @@ export class RollingSummaryService {
     }
   }
 
+  /** Cron job: delete CoachMessages whose summarizedAt is older than
+   * the retention window (default 7 days). Runs once a day at 03:00
+   * server time — the window is not time-sensitive, we just want to
+   * bound storage growth. */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async cleanupSummarizedMessages(): Promise<void> {
+    const cutoff = new Date(Date.now() - this.gcDays * 24 * 60 * 60 * 1000);
+    try {
+      const deleted = await this.messageModel.destroy({
+        where: {
+          summarizedAt: { [Op.ne]: null, [Op.lte]: cutoff },
+        },
+      });
+      if (deleted > 0) {
+        this.logger.log(
+          `gc: deleted ${deleted} summarized coach messages older than ${this.gcDays}d`,
+        );
+      }
+    } catch (err) {
+      this.logger.warn(`gc failed: ${(err as Error).message}`);
+    }
+  }
+
   private async regenerate(userId: number): Promise<void> {
     if (!this.client) return;
 
-    const thread = await this.threadManager.findThreadId(userId);
-    if (!thread) return;
+    const tail = await this.messageModel.findAll({
+      where: { userId, summarizedAt: null },
+      order: [['createdAt', 'ASC']],
+      limit: SUMMARY_TAIL_SIZE,
+    });
+    if (tail.length === 0) return;
 
     const previous = await this.contextService.getOrCreate(userId);
-    const messages = await this.client.beta.threads.messages.list(thread, {
-      limit: MAX_TAIL_MESSAGES,
-      order: 'desc',
-    });
-
-    const tail = messages.data
-      .reverse()
-      .map((m) => {
-        const text = m.content
-          .map((chunk) => (chunk.type === 'text' ? chunk.text.value : ''))
-          .join(' ')
-          .trim();
-        return text ? `${m.role.toUpperCase()}: ${text}` : '';
-      })
-      .filter(Boolean)
-      .join('\n');
-    if (!tail) return;
-
     const prior = previous.rollingSummary?.trim() ?? '';
+    const tailText = tail
+      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+      .join('\n');
+
     const userPrompt = [
       'Previous summary:',
       prior || '(none yet)',
       '',
-      'Recent thread tail:',
-      tail,
+      'Recent conversation tail:',
+      tailText,
     ].join('\n');
 
     const completion = await this.client.chat.completions.create({
@@ -105,9 +127,18 @@ export class RollingSummaryService {
     const next = completion.choices[0]?.message?.content?.trim() ?? '';
     if (!next) return;
 
+    const summarizedAt = new Date();
     await this.contextService.applyRegeneratedSummary(userId, next);
+    await this.messageModel.update(
+      { summarizedAt },
+      {
+        where: {
+          id: { [Op.in]: tail.map((m) => m.id) },
+        },
+      },
+    );
     this.logger.log(
-      `rolling-summary regenerated for userId=${userId} (${next.length} chars)`,
+      `rolling-summary regenerated for userId=${userId} (${next.length} chars, ${tail.length} msgs folded)`,
     );
   }
 }

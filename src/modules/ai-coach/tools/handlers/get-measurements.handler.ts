@@ -26,19 +26,16 @@ export class GetMeasurementsHandler
 {
   readonly name = 'get_measurements';
   readonly definition = {
-    type: 'function' as const,
-    function: {
-      name: this.name,
-      description: 'Get body measurements history, optionally filtered by metric.',
-      parameters: {
-        type: 'object' as const,
-        properties: {
-          metric: {
-            type: 'string',
-            enum: METRICS as unknown as string[],
-          },
-          limit: { type: 'number', description: 'Max records (default 10)' },
+    name: this.name,
+    description: 'Get body measurements history, optionally filtered by metric.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        metric: {
+          type: 'string',
+          enum: METRICS as unknown as string[],
         },
+        limit: { type: 'number', description: 'Max records (default 10)' },
       },
     },
   };

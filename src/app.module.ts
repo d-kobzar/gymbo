@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
@@ -37,6 +38,7 @@ import { AiCoachModule } from '@modules/ai-coach/ai-coach.module';
     EventBusModule,
     DatabaseModule,
     HealthModule,
+    ScheduleModule.forRoot(),
 
     // Static files (Mini App frontend)
     ServeStaticModule.forRoot({

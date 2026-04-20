@@ -20,15 +20,12 @@ export class GetVolumeAnalysisHandler
 {
   readonly name = 'get_volume_analysis';
   readonly definition = {
-    type: 'function' as const,
-    function: {
-      name: this.name,
-      description: 'Get volume analysis by exercise for last N weeks',
-      parameters: {
-        type: 'object' as const,
-        properties: {
-          weeks: { type: 'number', description: 'Weeks to analyze (default 4)' },
-        },
+    name: this.name,
+    description: 'Get volume analysis by exercise for last N weeks',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        weeks: { type: 'number', description: 'Weeks to analyze (default 4)' },
       },
     },
   };

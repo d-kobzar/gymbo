@@ -1,21 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { AssistantService } from './assistant.service';
+import { InjectModel } from '@nestjs/sequelize';
+import { Op } from 'sequelize';
+import { CoachMessage } from '../models/coach-message.model';
+import { MessageQueueService } from './message-queue.service';
 
 /**
- * Public facade over the assistant. Other modules (bot, API controllers)
- * depend on this — NOT on AssistantService directly — so that Phase 3
- * can interpose CoachContext / rolling-summary logic here without
- * ripple.
+ * Public facade for other modules (bot, future API controllers).
+ *
+ * `enqueue` is fire-and-forget: the message lands in DB, the debounced
+ * coach queue eventually runs the LLM and pushes the reply to Telegram
+ * via BotService.sendToChat. Callers don't await the reply.
+ *
+ * `clearHistory` resets the conversation for a user (e.g. "start
+ * fresh" button / /reset command).
  */
 @Injectable()
 export class CoachService {
-  constructor(private readonly assistant: AssistantService) {}
+  constructor(
+    @InjectModel(CoachMessage) private readonly messageModel: typeof CoachMessage,
+    private readonly queue: MessageQueueService,
+  ) {}
 
-  chat(userId: number, message: string): Promise<string> {
-    return this.assistant.chat(userId, message);
+  enqueue(userId: number, message: string): Promise<void> {
+    return this.queue.enqueue(userId, message);
   }
 
-  clearHistory(userId: number): Promise<void> {
-    return this.assistant.clearHistory(userId);
+  async clearHistory(userId: number): Promise<void> {
+    await this.messageModel.destroy({
+      where: { userId, summarizedAt: { [Op.is]: null } },
+    });
   }
 }

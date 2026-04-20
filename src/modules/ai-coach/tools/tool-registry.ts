@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { FunctionTool } from 'openai/resources/beta/assistants';
+import type { LlmFunctionTool } from '@modules/llm/llm-provider.interface';
 import type { CoachTool } from './coach-tool.interface';
 
 export class UnknownCoachToolError extends Error {
@@ -22,7 +22,7 @@ export class ToolRegistry {
     }
   }
 
-  getDefinitions(): FunctionTool[] {
+  getDefinitions(): LlmFunctionTool[] {
     return Array.from(this.tools.values()).map((t) => t.definition);
   }
 

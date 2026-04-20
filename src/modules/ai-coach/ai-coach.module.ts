@@ -1,17 +1,20 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { Exercise } from '@modules/exercises/models/exercise.model';
+import { BotModule } from '@modules/bot/bot.module';
+import { I18nModule } from '@modules/i18n/i18n.module';
+import { LlmModule } from '@modules/llm/llm.module';
 import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
 import { Program } from '@modules/programs/models/program.model';
 import { TrainingLog } from '@modules/training-logs/models/training-log.model';
 import { User } from '@modules/users/models/user.model';
-import { AiThread } from './models/ai-thread.model';
 import { CoachContext } from './models/coach-context.model';
-import { AssistantService } from './services/assistant.service';
+import { CoachMessage } from './models/coach-message.model';
+import { CoachAgentService } from './services/coach-agent.service';
 import { CoachContextService } from './services/coach-context.service';
 import { CoachService } from './services/coach.service';
+import { MessageQueueService } from './services/message-queue.service';
 import { RollingSummaryService } from './services/rolling-summary.service';
-import { ThreadManagerService } from './services/thread-manager.service';
 import { ToolExecutorService } from './services/tool-executor.service';
 import { GetCurrentProgramHandler } from './tools/handlers/get-current-program.handler';
 import { GetExerciseProgressHandler } from './tools/handlers/get-exercise-progress.handler';
@@ -40,14 +43,17 @@ const handlerProviders = [
 @Module({
   imports: [
     SequelizeModule.forFeature([
-      AiThread,
       CoachContext,
+      CoachMessage,
       TrainingLog,
       Exercise,
       BodyMeasurement,
       Program,
       User,
     ]),
+    LlmModule,
+    I18nModule,
+    forwardRef(() => BotModule),
   ],
   providers: [
     ...handlerProviders,
@@ -60,10 +66,10 @@ const handlerProviders = [
       inject: handlerProviders,
     },
     ToolExecutorService,
-    ThreadManagerService,
     CoachContextService,
     RollingSummaryService,
-    AssistantService,
+    CoachAgentService,
+    MessageQueueService,
     CoachService,
   ],
   exports: [CoachService],

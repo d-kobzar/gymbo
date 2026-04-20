@@ -16,12 +16,9 @@ export class GetPersonalRecordsHandler
 {
   readonly name = 'get_personal_records';
   readonly definition = {
-    type: 'function' as const,
-    function: {
-      name: this.name,
-      description: 'Get personal records (max weight, reps, volume) per exercise',
-      parameters: { type: 'object' as const, properties: {}, required: [] },
-    },
+    name: this.name,
+    description: 'Get personal records (max weight, reps, volume) per exercise',
+    parameters: { type: 'object' as const, properties: {}, required: [] },
   };
 
   constructor(

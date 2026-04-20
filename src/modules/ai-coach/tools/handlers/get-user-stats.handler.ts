@@ -17,12 +17,10 @@ export interface UserStatsResult {
 export class GetUserStatsHandler implements CoachTool<Record<string, never>, UserStatsResult> {
   readonly name = 'get_user_stats';
   readonly definition = {
-    type: 'function' as const,
-    function: {
-      name: this.name,
-      description: 'Get dashboard stats: sets this week, total sets, body weight, exercise count',
-      parameters: { type: 'object' as const, properties: {}, required: [] },
-    },
+    name: this.name,
+    description:
+      'Get dashboard stats: sets this week, total sets, body weight, exercise count',
+    parameters: { type: 'object' as const, properties: {}, required: [] },
   };
 
   constructor(
