@@ -58,8 +58,29 @@ export class MeasurementsService {
       order: [['createdAt', 'DESC']],
     });
 
+    // The bucket is private — the raw s3Key is useless to the browser.
+    // Presign each photo so the frontend can render it directly via
+    // <img src>. Signed URLs live for ~1 h, which matches the page's
+    // expected session length.
+    const data = await Promise.all(
+      rows.map(async (m) => {
+        const json = m.toJSON() as Record<string, unknown> & {
+          photos?: Array<Record<string, unknown> & { s3Key: string }>;
+        };
+        if (json.photos?.length) {
+          json.photos = await Promise.all(
+            json.photos.map(async (p) => ({
+              ...p,
+              signedUrl: await this.storageService.getSignedUrl(p.s3Key),
+            })),
+          );
+        }
+        return json;
+      }),
+    );
+
     return {
-      data: rows,
+      data,
       total: count,
       page,
       limit,
