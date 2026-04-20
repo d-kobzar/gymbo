@@ -89,15 +89,26 @@ export class RollingSummaryService {
   }
 
   /** On-demand refresh triggered from the UI ("Обновить контекст"
-   * in settings). Same incremental fold as the event-driven path —
-   * prior summary + unsummarized tail + live ground truth — but
-   * surfaces errors to the caller. The summarizer is instructed to
-   * reconcile against the injected ground truth, so stale phrases
-   * (old program, healed injuries, abandoned goals) get dropped
-   * instead of paraphrased forward. */
+   * in settings). Always produces a summary if the user has any
+   * message history at all — pulls the last N messages regardless
+   * of summarizedAt, and uses whatever prior exists (or nothing, if
+   * the user wiped it) as seed. The summarizer is instructed to
+   * reconcile against the injected live ground truth, so stale
+   * phrases (old program, healed injuries, abandoned goals) get
+   * dropped instead of paraphrased forward. */
   async refresh(userId: number): Promise<void> {
     if (!this.client) return;
-    await this.regenerate(userId);
+    const tail = await this.messageModel.findAll({
+      where: { userId },
+      order: [['createdAt', 'DESC']],
+      limit: SUMMARY_TAIL_SIZE,
+    });
+    if (tail.length === 0) {
+      this.logger.log(`refresh: no messages for userId=${userId}`);
+      return;
+    }
+    tail.reverse();
+    await this.compressAndSave(userId, tail);
   }
 
   /** Cron job: delete CoachMessages whose summarizedAt is older than
@@ -132,6 +143,14 @@ export class RollingSummaryService {
       limit: SUMMARY_TAIL_SIZE,
     });
     if (tail.length === 0) return;
+    await this.compressAndSave(userId, tail);
+  }
+
+  private async compressAndSave(
+    userId: number,
+    tail: CoachMessage[],
+  ): Promise<void> {
+    if (!this.client) return;
 
     const [previous, groundTruth] = await Promise.all([
       this.contextService.getOrCreate(userId),
@@ -163,16 +182,26 @@ export class RollingSummaryService {
       ],
     });
     const next = completion.choices[0]?.message?.content?.trim() ?? '';
-    if (!next) return;
+    if (!next) {
+      this.logger.warn(
+        `summarizer returned empty for userId=${userId}; keeping prior summary`,
+      );
+      return;
+    }
 
     const summarizedAt = new Date();
     await this.contextService.applyRegeneratedSummary(userId, next);
     await this.messageModel.update(
       { summarizedAt },
-      { where: { id: { [Op.in]: tail.map((m) => m.id) } } },
+      {
+        where: {
+          id: { [Op.in]: tail.map((m) => m.id) },
+          summarizedAt: null,
+        },
+      },
     );
     this.logger.log(
-      `rolling-summary regenerated for userId=${userId} (${next.length} chars, ${tail.length} msgs folded)`,
+      `rolling-summary saved for userId=${userId} (${next.length} chars, ${tail.length} msgs)`,
     );
   }
 }
