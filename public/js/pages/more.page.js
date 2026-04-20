@@ -44,33 +44,43 @@ export class MorePage extends Page {
   renderList() {
     const list = Page.el('div', { className: 'more-list' });
     const items = [
-      { icon: ICONS.program, label: i18n.t('nav.program'), sub: 'Weekly split', href: '#/program' },
+      {
+        icon: ICONS.program,
+        label: i18n.t('nav.program'),
+        sub: i18n.t('more.program_sub'),
+        href: '#/program',
+      },
       {
         icon: ICONS.measurements,
         label: i18n.t('measurements.page_title'),
-        sub: 'Body stats',
+        sub: i18n.t('more.measurements_sub'),
         href: '#/measurements',
       },
       {
         icon: ICONS.exercises,
         label: i18n.t('nav.exercises'),
-        sub: 'Your library',
+        sub: i18n.t('more.exercises_sub'),
         href: '#/exercises',
       },
       {
         icon: ICONS.settings,
         label: i18n.t('settings.title'),
-        sub: 'Language · notifications · theme',
+        sub: i18n.t('more.settings_sub'),
         href: '#/settings',
       },
       {
         icon: ICONS.support,
-        label: 'Support',
-        sub: 'Reach out on Telegram',
+        label: i18n.t('more.support'),
+        sub: i18n.t('more.support_sub'),
         href: 'https://t.me/GymBoSupport',
         external: true,
       },
-      { icon: ICONS.about, label: 'About', sub: `Version ${APP_VERSION}`, href: '#/about-stub' },
+      {
+        icon: ICONS.about,
+        label: i18n.t('more.about'),
+        sub: i18n.t('more.version_sub', { version: APP_VERSION }),
+        href: '#/about-stub',
+      },
     ];
 
     for (const it of items) {

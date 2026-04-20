@@ -10,39 +10,25 @@ import { telegram } from '../core/telegram.js';
 
 const METRIC_GROUPS = [
   {
-    title: 'Core',
+    titleKey: 'measurements.group_core',
     metrics: [
-      { id: 'weight', label: 'Weight', unit: 'kg', step: 0.1 },
-      { id: 'waist', label: 'Waist', unit: 'cm' },
-      { id: 'abs', label: 'Abs', unit: 'cm' },
-      { id: 'chest', label: 'Chest', unit: 'cm' },
+      { id: 'weight', step: 0.1 },
+      { id: 'waist' },
+      { id: 'abs' },
+      { id: 'chest' },
     ],
   },
   {
-    title: 'Upper',
-    metrics: [
-      { id: 'shoulders', label: 'Shoulders', unit: 'cm' },
-      { id: 'arm', label: 'Arm', unit: 'cm' },
-    ],
+    titleKey: 'measurements.group_upper',
+    metrics: [{ id: 'shoulders' }, { id: 'arm' }],
   },
   {
-    title: 'Lower',
-    metrics: [
-      { id: 'glutes', label: 'Glutes', unit: 'cm' },
-      { id: 'thigh', label: 'Thigh', unit: 'cm' },
-      { id: 'calf', label: 'Calf', unit: 'cm' },
-    ],
+    titleKey: 'measurements.group_lower',
+    metrics: [{ id: 'glutes' }, { id: 'thigh' }, { id: 'calf' }],
   },
 ];
 
-const TILE_METRICS = [
-  { id: 'chest', label: 'Chest', unit: 'cm' },
-  { id: 'waist', label: 'Waist', unit: 'cm' },
-  { id: 'arm', label: 'Arm', unit: 'cm' },
-  { id: 'thigh', label: 'Thigh', unit: 'cm' },
-  { id: 'glutes', label: 'Glutes', unit: 'cm' },
-  { id: 'shoulders', label: 'Shoulders', unit: 'cm' },
-];
+const TILE_METRICS = ['chest', 'waist', 'arm', 'thigh', 'glutes', 'shoulders'];
 
 const PHOTO_LABELS = ['front', 'side', 'back'];
 
@@ -159,14 +145,14 @@ export class MeasurementsPage extends Page {
     if (!this.gridSlot) return;
     const latest = this.history[0] ?? {};
     this.gridSlot.replaceChildren();
-    for (const tile of TILE_METRICS) {
-      const value = latest[tile.id];
+    for (const id of TILE_METRICS) {
+      const value = latest[id];
       const el = Page.el('div', { className: 'measure-tile' });
       el.innerHTML = `
-        <span class="measure-tile__label">${tile.label}</span>
+        <span class="measure-tile__label">${escapeHtml(i18n.t(`measurements.${id}`))}</span>
         <div>
           <span class="measure-tile__value">${value != null ? Number(value).toFixed(1) : '—'}</span>
-          <span class="measure-tile__unit">${tile.unit}</span>
+          <span class="measure-tile__unit">cm</span>
         </div>
       `;
       this.gridSlot.append(el);
@@ -237,12 +223,20 @@ export class MeasurementsPage extends Page {
     const inputs = {};
     for (const group of METRIC_GROUPS) {
       form.append(
-        Page.el('span', { className: 'measure-form__group-title', text: group.title }),
+        Page.el('span', {
+          className: 'measure-form__group-title',
+          text: i18n.t(group.titleKey),
+        }),
       );
       const grid = Page.el('div', { className: 'grid-2' });
       for (const metric of group.metrics) {
         const field = Page.el('div', { className: 'input-group' });
-        field.append(Page.el('label', { className: 'input-label', text: metric.label }));
+        field.append(
+          Page.el('label', {
+            className: 'input-label',
+            text: i18n.t(`measurements.${metric.id}`),
+          }),
+        );
         const input = document.createElement('input');
         input.className = 'input input--numeric';
         input.type = 'number';
@@ -313,10 +307,14 @@ export class MeasurementsPage extends Page {
 
   /** @param {unknown} err */
   handleError(err) {
-    if (err instanceof NetworkError) toast.show('Network error.', { variant: 'error' });
+    if (err instanceof NetworkError) toast.show(i18n.t('toasts.network_error'), { variant: 'error' });
     else if (err instanceof ApiError) toast.show(err.message, { variant: 'error' });
     else toast.show(i18n.t('common.error'), { variant: 'error' });
   }
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function todayIso() {

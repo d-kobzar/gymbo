@@ -8,11 +8,13 @@ import { api, ApiError, NetworkError } from '../core/api.js';
 import { i18n } from '../core/i18n.js';
 import { haptics } from '../core/haptics.js';
 
-const METRICS = [
-  { id: 'maxWeight', label: 'Weight', unit: 'kg' },
-  { id: 'maxReps', label: 'Reps', unit: '' },
-  { id: 'totalVolume', label: 'Volume', unit: 'kg' },
-];
+const METRIC_IDS = /** @type {const} */ (['maxWeight', 'maxReps', 'totalVolume']);
+const METRIC_UNITS = { maxWeight: 'kg', maxReps: '', totalVolume: 'kg' };
+const METRIC_LABEL_KEYS = {
+  maxWeight: 'progress.max_weight',
+  maxReps: 'progress.max_reps',
+  totalVolume: 'progress.volume',
+};
 
 /**
  * Progress page — pick an exercise, pick a metric, see the line
@@ -26,7 +28,7 @@ export class ProgressPage extends Page {
     this.exercises = [];
     /** @type {Array<{date:string,maxWeight:number,maxReps:number,totalVolume:number}>} */
     this.series = [];
-    this.metric = METRICS[0].id;
+    this.metric = METRIC_IDS[0];
     /** @type {number | null} */
     this.exerciseId = null;
     /** @type {string | null} */
@@ -50,7 +52,7 @@ export class ProgressPage extends Page {
     this.chartSlot.append(this.skeletonCard('200px'));
     shell.append(this.chartSlot);
 
-    const weeklySection = Page.section('Weekly volume');
+    const weeklySection = Page.section(i18n.t('progress.weekly_volume'));
     this.volumeSlot = Page.el('div', { className: 'chart-card' });
     this.volumeSlot.append(this.skeletonCard('120px'));
     weeklySection.append(this.volumeSlot);
@@ -100,7 +102,7 @@ export class ProgressPage extends Page {
   renderMetricTabs() {
     const slot = Page.el('div');
     new SegmentedControl(slot, {
-      options: METRICS.map((m) => ({ id: m.id, label: m.label })),
+      options: METRIC_IDS.map((id) => ({ id, label: i18n.t(METRIC_LABEL_KEYS[id]) })),
       value: this.metric,
       block: true,
       onChange: (id) => {
@@ -174,8 +176,10 @@ export class ProgressPage extends Page {
       return;
     }
 
-    const metric = METRICS.find((m) => m.id === this.metric) ?? METRICS[0];
-    const values = this.series.map((p) => Number(p[metric.id] ?? 0));
+    const metricId = METRIC_IDS.includes(this.metric) ? this.metric : METRIC_IDS[0];
+    const metricLabel = i18n.t(METRIC_LABEL_KEYS[metricId]);
+    const metricUnit = METRIC_UNITS[metricId];
+    const values = this.series.map((p) => Number(p[metricId] ?? 0));
     const latest = values[values.length - 1] ?? 0;
     const earliest = values[0] ?? 0;
     const delta = latest - earliest;
@@ -184,12 +188,12 @@ export class ProgressPage extends Page {
     const head = Page.el('div', { className: 'chart-card__head' });
     const left = Page.el('div');
     left.append(
-      Page.el('span', { className: 'chart-card__label', text: metric.label }),
+      Page.el('span', { className: 'chart-card__label', text: metricLabel }),
       (() => {
         const v = Page.el('div');
         v.innerHTML = `
           <span class="chart-card__value">${formatNumber(latest)}</span>
-          ${metric.unit ? `<span class="chart-card__unit">${metric.unit}</span>` : ''}
+          ${metricUnit ? `<span class="chart-card__unit">${metricUnit}</span>` : ''}
         `;
         return v;
       })(),
@@ -198,7 +202,7 @@ export class ProgressPage extends Page {
     if (Math.abs(delta) > 0.0001) {
       const badge = Page.el('span', {
         className: `chart-card__delta${delta < 0 ? ' chart-card__delta--down' : ''}`,
-        text: `${delta > 0 ? '+' : ''}${formatNumber(delta)} ${metric.unit}`.trim(),
+        text: `${delta > 0 ? '+' : ''}${formatNumber(delta)} ${metricUnit}`.trim(),
       });
       head.append(badge);
     }
@@ -290,7 +294,7 @@ export class ProgressPage extends Page {
   renderVolumeBars(items) {
     if (!this.volumeSlot) return;
     if (items.length === 0) {
-      this.volumeSlot.replaceChildren(this.renderEmpty('No volume data yet'));
+      this.volumeSlot.replaceChildren(this.renderEmpty(i18n.t('progress.no_volume')));
       return;
     }
     const max = Math.max(...items.map((i) => Number(i.totalVolume ?? 0))) || 1;

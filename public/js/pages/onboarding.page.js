@@ -7,29 +7,16 @@ import { i18n } from '../core/i18n.js';
 const DRAFT_KEY = 'gymbo_onboarding_draft';
 const STEP_COUNT = 6;
 
-const SEX_OPTIONS = [
-  { id: 'male', label: 'Male' },
-  { id: 'female', label: 'Female' },
-  { id: 'other', label: 'Other' },
-];
-const GOAL_OPTIONS = [
-  { id: 'hypertrophy', label: 'Hypertrophy', hint: 'Build muscle' },
-  { id: 'strength', label: 'Strength', hint: 'Max load' },
-  { id: 'cut', label: 'Cut', hint: 'Lose fat, keep muscle' },
-  { id: 'maintenance', label: 'Maintain', hint: 'Stay where you are' },
-];
-const LEVEL_OPTIONS = [
-  { id: 'beginner', label: 'Beginner', hint: '< 1 y training' },
-  { id: 'intermediate', label: 'Intermediate', hint: '1–3 y training' },
-  { id: 'advanced', label: 'Advanced', hint: '3+ y training' },
-];
-const EQUIPMENT_OPTIONS = [
-  { id: 'barbell', label: 'Barbell' },
-  { id: 'dumbbell', label: 'Dumbbell' },
-  { id: 'machines', label: 'Machines' },
-  { id: 'cables', label: 'Cables' },
-  { id: 'bodyweight', label: 'Bodyweight' },
-];
+const SEX_IDS = /** @type {const} */ (['male', 'female', 'other']);
+const GOAL_IDS = /** @type {const} */ (['hypertrophy', 'strength', 'cut', 'maintenance']);
+const LEVEL_IDS = /** @type {const} */ (['beginner', 'intermediate', 'advanced']);
+const EQUIPMENT_IDS = /** @type {const} */ ([
+  'barbell',
+  'dumbbell',
+  'machines',
+  'cables',
+  'bodyweight',
+]);
 
 /**
  * Onboarding quiz — 6 steps, required before the app unlocks.
@@ -41,14 +28,8 @@ const EQUIPMENT_OPTIONS = [
  *   5. First measurement (weight required, circumferences optional)
  *   6. Review → POST /api/users/onboarding
  *
- * State is held in `this.draft` and mirrored into localStorage on
- * every input so closing the Mini App doesn't lose progress.
- *
- * Also serves as "edit profile" when `props.editMode === true`:
- *   - Seeds `this.draft` from an already-loaded profile/measurement.
- *   - Cancel navigates back instead of blocking.
- *   - Final submit uses PATCH instead of POST (future hook; for now
- *     we reuse POST server-side during the onboarding flow).
+ * Fully localized via i18n.t — labels and hints all pulled from the
+ * `onboarding.*` namespace.
  */
 export class OnboardingPage extends Page {
   constructor(root, props = {}) {
@@ -165,7 +146,13 @@ export class OnboardingPage extends Page {
     if (!this.headerSlot) return;
     const meta = this.stepMeta();
     this.headerSlot.replaceChildren(
-      Page.el('span', { className: 'onboarding-header__kicker', text: `Step ${this.stepIdx + 1} of ${STEP_COUNT}` }),
+      Page.el('span', {
+        className: 'onboarding-header__kicker',
+        text: i18n.t('onboarding.step_of', {
+          current: this.stepIdx + 1,
+          total: STEP_COUNT,
+        }),
+      }),
       Page.el('h1', { className: 'onboarding-header__title', text: meta.title }),
       Page.el('p', { className: 'onboarding-header__hint', text: meta.hint }),
     );
@@ -205,7 +192,7 @@ export class OnboardingPage extends Page {
     if (this.stepIdx > 0) {
       const back = Page.el('button', {
         className: 'button button--ghost button--lg',
-        text: 'Back',
+        text: i18n.t('common.back'),
       });
       back.type = 'button';
       this.on(back, 'click', () => {
@@ -219,21 +206,20 @@ export class OnboardingPage extends Page {
     const isLast = this.stepIdx === STEP_COUNT - 1;
     const next = Page.el('button', {
       className: 'button button--primary button--lg',
-      text: isLast ? (this.editMode ? 'Save' : 'Finish') : 'Continue',
+      text: isLast
+        ? i18n.t(this.editMode ? 'common.save' : 'common.finish')
+        : i18n.t('common.continue'),
     });
     next.type = 'button';
     this.on(next, 'click', () => {
       if (!this.canAdvance()) {
         haptics.error();
-        toast.show('Please fill the required fields to continue.', {
-          variant: 'warning',
-        });
+        toast.show(i18n.t('toasts.fill_required'), { variant: 'warning' });
         return;
       }
       haptics.tap();
-      if (isLast) {
-        void this.submit();
-      } else {
+      if (isLast) void this.submit();
+      else {
         this.stepIdx += 1;
         this.renderStep();
       }
@@ -242,35 +228,19 @@ export class OnboardingPage extends Page {
   }
 
   stepMeta() {
-    return [
-      {
-        title: 'About you',
-        hint:
-          'The coach needs sex, birthday, and height to tailor volume, calorie targets, and 1RM estimates.',
-      },
-      {
-        title: 'Your training',
-        hint: 'Current goal, experience level, and how many days a week you can realistically hit the gym.',
-      },
-      {
-        title: 'Equipment',
-        hint: 'What you actually have access to. Pick everything that applies.',
-      },
-      {
-        title: 'Health check',
-        hint:
-          'List current or recurring injuries and anything the coach should keep in mind (meds, conditions, age-related caveats).',
-      },
-      {
-        title: 'First measurement',
-        hint:
-          'Weight is required. Circumferences are optional — but the more you give, the better the tracking.',
-      },
-      {
-        title: 'Review',
-        hint: 'One last look before we hand this to the coach.',
-      },
-    ][this.stepIdx];
+    const keys = [
+      'basics',
+      'training',
+      'equipment',
+      'health',
+      'measurement',
+      'review',
+    ];
+    const k = keys[this.stepIdx];
+    return {
+      title: i18n.t(`onboarding.step_${k}_title`),
+      hint: i18n.t(`onboarding.step_${k}_hint`),
+    };
   }
 
   canAdvance() {
@@ -292,7 +262,7 @@ export class OnboardingPage extends Page {
       case 2:
         return Array.isArray(this.draft.equipment) && this.draft.equipment.length > 0;
       case 3:
-        return true; // optional
+        return true;
       case 4:
         return Number.isFinite(Number(this.draft.weight)) && Number(this.draft.weight) > 20;
       case 5:
@@ -308,22 +278,26 @@ export class OnboardingPage extends Page {
     const wrap = Page.el('div');
     wrap.append(
       this.labeledBlock(
-        'Sex',
-        this.optionGroup(SEX_OPTIONS, this.draft.sex, (id) => {
-          this.draft.sex = id;
-          this.saveDraft();
-          this.renderStep();
-        }),
+        i18n.t('onboarding.sex'),
+        this.optionGroup(
+          SEX_IDS.map((id) => ({ id, label: i18n.t(`onboarding.sex_${id}`) })),
+          this.draft.sex,
+          (id) => {
+            this.draft.sex = id;
+            this.saveDraft();
+            this.renderStep();
+          },
+        ),
       ),
       this.labeledBlock(
-        'Date of birth',
+        i18n.t('onboarding.dob'),
         this.dateInput(this.draft.dateOfBirth, (v) => {
           this.draft.dateOfBirth = v;
           this.saveDraft();
         }),
       ),
       this.labeledBlock(
-        'Height (cm)',
+        i18n.t('onboarding.height_cm'),
         this.numberInput(this.draft.heightCm, { min: 80, max: 260 }, (v) => {
           this.draft.heightCm = v;
           this.saveDraft();
@@ -337,31 +311,43 @@ export class OnboardingPage extends Page {
     const wrap = Page.el('div');
     wrap.append(
       this.labeledBlock(
-        'Goal',
-        this.optionGroup(GOAL_OPTIONS, this.draft.goal, (id) => {
-          this.draft.goal = id;
-          this.saveDraft();
-          this.renderStep();
-        }),
-      ),
-      this.labeledBlock(
-        'Experience',
-        this.optionGroup(LEVEL_OPTIONS, this.draft.experienceLevel, (id) => {
-          this.draft.experienceLevel = id;
-          this.saveDraft();
-          this.renderStep();
-        }),
-      ),
-      this.labeledBlock(
-        'Training days / week',
-        this.numberInput(
-          this.draft.trainingDaysPerWeek,
-          { min: 1, max: 7 },
-          (v) => {
-            this.draft.trainingDaysPerWeek = v;
+        i18n.t('onboarding.goal'),
+        this.optionGroup(
+          GOAL_IDS.map((id) => ({
+            id,
+            label: i18n.t(`onboarding.goal_${id}`),
+            hint: i18n.t(`onboarding.goal_${id}_hint`),
+          })),
+          this.draft.goal,
+          (id) => {
+            this.draft.goal = id;
             this.saveDraft();
+            this.renderStep();
           },
         ),
+      ),
+      this.labeledBlock(
+        i18n.t('onboarding.experience'),
+        this.optionGroup(
+          LEVEL_IDS.map((id) => ({
+            id,
+            label: i18n.t(`onboarding.experience_${id}`),
+            hint: i18n.t(`onboarding.experience_${id}_hint`),
+          })),
+          this.draft.experienceLevel,
+          (id) => {
+            this.draft.experienceLevel = id;
+            this.saveDraft();
+            this.renderStep();
+          },
+        ),
+      ),
+      this.labeledBlock(
+        i18n.t('onboarding.days_per_week'),
+        this.numberInput(this.draft.trainingDaysPerWeek, { min: 1, max: 7 }, (v) => {
+          this.draft.trainingDaysPerWeek = v;
+          this.saveDraft();
+        }),
       ),
     );
     return wrap;
@@ -371,17 +357,17 @@ export class OnboardingPage extends Page {
     const wrap = Page.el('div');
     const chips = Page.el('div', { className: 'onboarding-chips' });
     const equipment = /** @type {string[]} */ (this.draft.equipment ?? []);
-    for (const opt of EQUIPMENT_OPTIONS) {
+    for (const id of EQUIPMENT_IDS) {
       const chip = Page.el('button', {
-        className: `onboarding-chip${equipment.includes(opt.id) ? ' onboarding-chip--active' : ''}`,
-        text: opt.label,
+        className: `onboarding-chip${equipment.includes(id) ? ' onboarding-chip--active' : ''}`,
+        text: i18n.t(`onboarding.equipment_${id}`),
       });
       chip.type = 'button';
       this.on(chip, 'click', () => {
         haptics.select();
-        const next = equipment.includes(opt.id)
-          ? equipment.filter((e) => e !== opt.id)
-          : [...equipment, opt.id];
+        const next = equipment.includes(id)
+          ? equipment.filter((e) => e !== id)
+          : [...equipment, id];
         this.draft.equipment = next;
         this.saveDraft();
         this.renderStep();
@@ -416,7 +402,7 @@ export class OnboardingPage extends Page {
     const input = document.createElement('input');
     input.className = 'input';
     input.type = 'text';
-    input.placeholder = 'e.g. right knee, lower back';
+    input.placeholder = i18n.t('onboarding.injuries_placeholder');
     input.value = this.draft.injuryInput ?? '';
     this.on(input, 'input', () => {
       this.draft.injuryInput = input.value;
@@ -424,7 +410,7 @@ export class OnboardingPage extends Page {
     });
     const addBtn = Page.el('button', {
       className: 'button button--secondary button--lg',
-      text: 'Add',
+      text: i18n.t('common.add'),
     });
     addBtn.type = 'button';
     this.on(addBtn, 'click', () => {
@@ -440,8 +426,7 @@ export class OnboardingPage extends Page {
 
     const textarea = document.createElement('textarea');
     textarea.className = 'onboarding-textarea';
-    textarea.placeholder =
-      'Anything else the coach should keep in mind (meds, conditions, age-related caveats)...';
+    textarea.placeholder = i18n.t('onboarding.health_notes_placeholder');
     textarea.value = this.draft.healthNotes ?? '';
     this.on(textarea, 'input', () => {
       this.draft.healthNotes = textarea.value;
@@ -449,8 +434,8 @@ export class OnboardingPage extends Page {
     });
 
     wrap.append(
-      this.labeledBlock('Injuries', chips, addRow),
-      this.labeledBlock('Health notes (optional)', textarea),
+      this.labeledBlock(i18n.t('onboarding.injuries'), chips, addRow),
+      this.labeledBlock(i18n.t('onboarding.health_notes_optional'), textarea),
     );
     return wrap;
   }
@@ -458,21 +443,21 @@ export class OnboardingPage extends Page {
   renderMeasurementStep() {
     const wrap = Page.el('div');
     const fields = [
-      { id: 'weight', label: 'Weight (kg)', required: true, step: 0.1 },
-      { id: 'waist', label: 'Waist (cm)' },
-      { id: 'chest', label: 'Chest (cm)' },
-      { id: 'shoulders', label: 'Shoulders (cm)' },
-      { id: 'arm', label: 'Arm (cm)' },
-      { id: 'thigh', label: 'Thigh (cm)' },
-      { id: 'glutes', label: 'Glutes (cm)' },
-      { id: 'abs', label: 'Abs (cm)' },
-      { id: 'calf', label: 'Calf (cm)' },
+      { id: 'weight', labelKey: 'weight_kg_required', required: true, step: 0.1 },
+      { id: 'waist', labelKey: 'waist_cm' },
+      { id: 'chest', labelKey: 'chest_cm' },
+      { id: 'shoulders', labelKey: 'shoulders_cm' },
+      { id: 'arm', labelKey: 'arm_cm' },
+      { id: 'thigh', labelKey: 'thigh_cm' },
+      { id: 'glutes', labelKey: 'glutes_cm' },
+      { id: 'abs', labelKey: 'abs_cm' },
+      { id: 'calf', labelKey: 'calf_cm' },
     ];
     const grid = Page.el('div', { className: 'onboarding-measurements' });
     for (const f of fields) {
       grid.append(
         this.labeledBlock(
-          f.required ? `${f.label} *` : f.label,
+          i18n.t(`onboarding.${f.labelKey}`),
           this.numberInput(
             this.draft[f.id],
             { min: 0, max: 400, step: f.step ?? 0.5 },
@@ -491,21 +476,23 @@ export class OnboardingPage extends Page {
   renderSummaryStep() {
     const wrap = Page.el('div', { className: 'onboarding-summary' });
     const rows = [
-      ['Sex', this.draft.sex],
-      ['Birthday', this.draft.dateOfBirth],
-      ['Height', `${this.draft.heightCm} cm`],
-      ['Goal', this.draft.goal],
-      ['Level', this.draft.experienceLevel],
-      ['Days / week', this.draft.trainingDaysPerWeek],
+      [i18n.t('onboarding.review_sex'), this.draft.sex ? i18n.t(`onboarding.sex_${this.draft.sex}`) : ''],
+      [i18n.t('onboarding.review_birthday'), this.draft.dateOfBirth],
+      [i18n.t('onboarding.review_height'), `${this.draft.heightCm} cm`],
+      [i18n.t('onboarding.review_goal'), this.draft.goal ? i18n.t(`onboarding.goal_${this.draft.goal}`) : ''],
+      [i18n.t('onboarding.review_level'), this.draft.experienceLevel ? i18n.t(`onboarding.experience_${this.draft.experienceLevel}`) : ''],
+      [i18n.t('onboarding.review_days'), this.draft.trainingDaysPerWeek],
       [
-        'Equipment',
-        (this.draft.equipment ?? []).join(', ') || '—',
+        i18n.t('onboarding.review_equipment'),
+        (this.draft.equipment ?? [])
+          .map((id) => i18n.t(`onboarding.equipment_${id}`))
+          .join(', ') || i18n.t('common.none'),
       ],
       [
-        'Injuries',
-        (this.draft.injuries ?? []).join(', ') || 'none',
+        i18n.t('onboarding.review_injuries'),
+        (this.draft.injuries ?? []).join(', ') || i18n.t('common.none'),
       ],
-      ['Weight', `${this.draft.weight} kg`],
+      [i18n.t('onboarding.review_weight'), `${this.draft.weight} kg`],
     ];
     for (const [label, value] of rows) {
       const row = Page.el('div', { className: 'onboarding-summary__row' });
@@ -528,12 +515,12 @@ export class OnboardingPage extends Page {
     try {
       await api.post('/api/users/onboarding', payload);
       haptics.success();
-      toast.show('Welcome aboard.', { variant: 'success' });
+      toast.show(i18n.t('toasts.welcome_aboard'), { variant: 'success' });
       this.clearDraft();
       globalThis.location.hash = '/home';
     } catch (err) {
       if (err instanceof NetworkError) {
-        toast.show('Network error. Try again.', { variant: 'error' });
+        toast.show(i18n.t('toasts.network_error'), { variant: 'error' });
       } else if (err instanceof ApiError) {
         toast.show(err.message, { variant: 'error' });
       } else {
@@ -583,9 +570,7 @@ export class OnboardingPage extends Page {
    * @param {(id: string) => void} onChange
    */
   optionGroup(options, value, onChange) {
-    const wrap = Page.el('div', {
-      className: `onboarding-options${options.length <= 2 ? '' : ''}`,
-    });
+    const wrap = Page.el('div', { className: 'onboarding-options' });
     for (const opt of options) {
       const btn = Page.el('button', {
         className: `onboarding-option${opt.id === value ? ' onboarding-option--active' : ''}`,

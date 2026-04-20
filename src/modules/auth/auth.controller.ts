@@ -16,6 +16,6 @@ export class AuthController {
   async telegramLogin(@Body() body: TelegramLoginDto): Promise<LoginResult> {
     const tgUser = this.initData.verify(body.initData);
     if (!tgUser) throw new UnauthorizedException('Invalid Telegram init data');
-    return this.authService.loginOrRegister(tgUser);
+    return this.authService.loginForStartedBot(tgUser);
   }
 }

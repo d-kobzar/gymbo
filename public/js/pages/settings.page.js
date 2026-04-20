@@ -74,10 +74,10 @@ export class SettingsPage extends Page {
   }
 
   renderTheme() {
-    const section = Page.section('Theme');
+    const section = Page.section(i18n.t('settings.theme'));
     const group = Page.el('div', { className: 'settings-group' });
     const row = Page.el('div', { className: 'settings-row' });
-    row.append(Page.el('span', { className: 'settings-row__label', text: 'Use Telegram theme' }));
+    row.append(Page.el('span', { className: 'settings-row__label', text: i18n.t('settings.use_telegram_theme') }));
     const current = globalThis.localStorage?.getItem(THEME_KEY) === 'tg';
     row.append(this.toggle(current, (on) => {
       if (on) {
@@ -201,7 +201,7 @@ export class SettingsPage extends Page {
   }
 
   renderData() {
-    const section = Page.section('Data');
+    const section = Page.section(i18n.t('settings.data'));
     const group = Page.el('div', { className: 'settings-group' });
 
     const exportRow = Page.el('div', { className: 'settings-row' });

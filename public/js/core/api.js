@@ -50,11 +50,18 @@ class Api {
 
   /**
    * Exchange Telegram initData for a JWT.
-   * @returns {Promise<string | null>}
+   *
+   * Returns one of:
+   *   { ok: true, token }
+   *   { ok: false, needsStart: true }  — bot /start was never pressed
+   *   { ok: false, needsStart: false } — no initData / network down
+   *
+   * Callers must handle needsStart to show the "tap /start first"
+   * screen rather than bounce around the router.
    */
   async authenticateWithTelegram() {
     const initData = telegram.initData;
-    if (!initData) return null;
+    if (!initData) return { ok: false, needsStart: false };
 
     try {
       const res = await fetch(this.baseUrl + '/api/auth/telegram', {
@@ -62,13 +69,21 @@ class Api {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ initData }),
       });
-      if (!res.ok) return null;
+      if (res.status === 409) {
+        const raw = await res.json().catch(() => ({}));
+        const code = raw?.error?.code ?? '';
+        if (code === 'BOT_NOT_STARTED') {
+          this.setToken(null);
+          return { ok: false, needsStart: true };
+        }
+      }
+      if (!res.ok) return { ok: false, needsStart: false };
       const body = unwrap(await res.json());
       const token = body?.token ?? body?.access_token ?? null;
       this.setToken(token);
-      return token;
+      return { ok: Boolean(token), needsStart: false, token };
     } catch {
-      return null;
+      return { ok: false, needsStart: false };
     }
   }
 

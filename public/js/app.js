@@ -1,18 +1,16 @@
 /**
  * GymBo Mini App — ESM entry point.
  *
- * Boots in this order:
- *   1. Pull CSS into the bundle so Vite emits both assets together.
- *   2. Initialize Telegram WebApp (expand, haptic-ready).
- *   3. Apply the persisted theme (V2 by default; `data-theme="tg"`
- *      only when the user explicitly opts in via Settings).
- *   4. Authenticate via Telegram initData → JWT.
- *   5. Load locales + set language from Telegram user.
- *   6. Fetch /api/users/me to learn onboarding state.
- *   7. Mount the persistent shell (#page-container + #bottom-nav).
- *   8. If onboarded: register routes and start the hash router.
- *      If NOT onboarded: force-render the OnboardingPage and keep
- *      the bottom-nav hidden until completion.
+ * Boot order:
+ *   1. Pull CSS into the bundle.
+ *   2. Telegram WebApp ready/expand, apply persisted theme.
+ *   3. Load locales, pick language from Telegram user.
+ *   4. Authenticate via initData.
+ *      - If bot not started (409 BOT_NOT_STARTED) → StartFirstPage.
+ *      - If any other auth failure → show toast and abort.
+ *   5. GET /api/users/me.
+ *      - If onboardedAt null → OnboardingPage.
+ *      - Otherwise → mount shell with bottom nav + router.
  */
 
 import '../styles/index.css';
@@ -34,6 +32,7 @@ import { ExercisesPage } from './pages/exercises.page.js';
 import { SettingsPage } from './pages/settings.page.js';
 import { MorePage } from './pages/more.page.js';
 import { OnboardingPage } from './pages/onboarding.page.js';
+import { StartFirstPage } from './pages/start-first.page.js';
 
 const ICONS = {
   home:
@@ -51,20 +50,26 @@ async function boot() {
     telegram.ready();
     telegram.expand();
     applyPersistedTheme();
-    await Promise.all([api.authenticateWithTelegram(), i18n.load()]);
+    await i18n.load();
     i18n.setLang(i18n.detectLang(telegram.user?.language_code));
 
-    const me = await api.get('/api/users/me').catch(() => null);
-
-    if (!me?.onboardedAt) {
-      mountOnboarding();
-    } else {
-      mountShell();
+    const authResult = await api.authenticateWithTelegram();
+    if (!authResult.ok) {
+      if (authResult.needsStart) {
+        mountStartFirst();
+        return;
+      }
+      toast.show(i18n.t('common.error'), { variant: 'error' });
+      return;
     }
+
+    const me = await api.get('/api/users/me').catch(() => null);
+    if (!me?.onboardedAt) mountOnboarding();
+    else mountShell();
   } catch (err) {
     // eslint-disable-next-line no-console -- critical boot failure signal
     console.error('[GymBo] boot failed', err);
-    toast.show('Failed to start the app. Please reload.', { variant: 'error' });
+    toast.show(i18n.t('common.error'), { variant: 'error' });
   }
 }
 
@@ -81,34 +86,48 @@ function applyPersistedTheme() {
   }
 }
 
-function mountOnboarding() {
+function mountPoints() {
   const pageContainer = document.getElementById('page-container');
   const navHost = document.getElementById('bottom-nav');
   if (!pageContainer || !navHost) {
     throw new Error('Shell mount points missing in index.html');
   }
+  return { pageContainer, navHost };
+}
+
+function mountStartFirst() {
+  const { pageContainer, navHost } = mountPoints();
   navHost.style.display = 'none';
-
-  const page = new OnboardingPage(pageContainer, {});
-  page.render();
-
-  // Reboot once onboarding succeeds — simplest way to pick up the
-  // now-true `onboardedAt` flag and switch to the real shell.
-  globalThis.addEventListener('hashchange', () => {
-    if (globalThis.location.hash.startsWith('#/home')) {
+  const page = new StartFirstPage(pageContainer, {
+    onRetry: async () => {
       page.destroy();
       pageContainer.replaceChildren();
-      void boot();
-    }
-  }, { once: true });
+      await boot();
+    },
+  });
+  page.render();
+}
+
+function mountOnboarding() {
+  const { pageContainer, navHost } = mountPoints();
+  navHost.style.display = 'none';
+  const page = new OnboardingPage(pageContainer, {});
+  page.render();
+  globalThis.addEventListener(
+    'hashchange',
+    () => {
+      if (globalThis.location.hash.startsWith('#/home')) {
+        page.destroy();
+        pageContainer.replaceChildren();
+        void boot();
+      }
+    },
+    { once: true },
+  );
 }
 
 function mountShell() {
-  const pageContainer = document.getElementById('page-container');
-  const navHost = document.getElementById('bottom-nav');
-  if (!pageContainer || !navHost) {
-    throw new Error('Shell mount points missing in index.html');
-  }
+  const { pageContainer, navHost } = mountPoints();
   navHost.style.display = '';
   pageContainer.style.transition = 'opacity var(--duration-fast) var(--ease-out)';
 

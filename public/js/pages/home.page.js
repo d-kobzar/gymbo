@@ -205,9 +205,9 @@ export class HomePage extends Page {
   /** @param {unknown} err */
   handleLoadError(err) {
     if (err instanceof NetworkError) {
-      toast.show('Network error. Check your connection.', {
+      toast.show(i18n.t('toasts.network_error'), {
         variant: 'error',
-        action: { label: 'Retry', onClick: () => void this.load() },
+        action: { label: i18n.t('common.retry'), onClick: () => void this.load() },
       });
       return;
     }

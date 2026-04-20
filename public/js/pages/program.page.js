@@ -208,7 +208,7 @@ export class ProgramPage extends Page {
   /** @param {unknown} err */
   handleError(err) {
     if (err instanceof NetworkError) {
-      toast.show('Network error.', { variant: 'error' });
+      toast.show(i18n.t('toasts.network_error'), { variant: 'error' });
       return;
     }
     if (err instanceof ApiError) {

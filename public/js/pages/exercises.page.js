@@ -231,7 +231,7 @@ export class ExercisesPage extends Page {
 
   /** @param {unknown} err */
   handleError(err) {
-    if (err instanceof NetworkError) toast.show('Network error.', { variant: 'error' });
+    if (err instanceof NetworkError) toast.show(i18n.t('toasts.network_error'), { variant: 'error' });
     else if (err instanceof ApiError) toast.show(err.message, { variant: 'error' });
     else toast.show(i18n.t('common.error'), { variant: 'error' });
   }
