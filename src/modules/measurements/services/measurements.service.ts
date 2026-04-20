@@ -55,7 +55,14 @@ export class MeasurementsService {
       include: [{ model: MeasurementPhoto }],
       offset: (page - 1) * limit,
       limit,
-      order: [['createdAt', 'DESC']],
+      // Sort by logical date first, then createdAt as tiebreaker for
+      // multiple entries on the same day. Using createdAt alone would
+      // surface a backdated entry inserted later as "latest", which
+      // is wrong for the hero card and timeline.
+      order: [
+        ['date', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
     });
 
     // The bucket is private — the raw s3Key is useless to the browser.
