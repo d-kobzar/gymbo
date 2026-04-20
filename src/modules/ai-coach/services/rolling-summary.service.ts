@@ -19,23 +19,33 @@ export interface SummaryRequestedPayload {
 const SUMMARY_MODEL = 'gpt-4o-mini';
 const SUMMARY_MAX_TOKENS = 300;
 const SUMMARY_TAIL_SIZE = 20;
-const REBUILD_TAIL_SIZE = 50;
 
 const SUMMARY_SYSTEM_PROMPT = `You maintain a compressed rolling NARRATIVE of a strength coaching conversation.
 
-Preserve ONLY:
-- The athlete's self-reported state across sessions (recurring soreness, sleep/stress/energy patterns they mentioned, recovery issues).
-- Decisions or adjustments the athlete and coach landed on, and the WHY behind them.
-- Behavioral patterns (consistency issues, time constraints, strong preferences, things that motivate or demotivate).
+You will receive three things:
+1. The previous summary (may be stale — can reference an old program, old injuries since healed, old goals since abandoned).
+2. The athlete's CURRENT ground truth (live program, latest body snapshot, health). Pulled fresh from the database — this is authoritative.
+3. Recent conversation tail (the newest turns since the last summary).
+
+Your job: produce a single updated paragraph that reconciles them.
+
+Reconciliation rules:
+- If the previous summary references a program, injury, goal, or body fact that contradicts ground truth — DROP or UPDATE the contradicting phrase. The ground truth wins, every time. Do not paraphrase stale facts forward.
+- If ground truth mentions something the athlete never discussed in chat (e.g. a freshly-saved program), you can reference it by name only, but do not replicate its structure — that's always injected fresh separately.
+- You do not need to restate the ground truth. It is injected into every coach turn anyway.
+
+Preserve:
+- The athlete's self-reported state across sessions (recurring soreness, sleep / stress / energy patterns, recovery issues).
+- Decisions the athlete and coach landed on, and the WHY behind them.
+- Behavioral patterns (consistency issues, time constraints, strong preferences, motivators / demotivators).
 - Pending next-session plan only if it was explicitly agreed.
 
-Drop entirely — this data is injected fresh every turn, DO NOT duplicate it here:
-- The athlete's current training program (days, exercises, sets, frequency). The program changes; your mention of it rots.
-- Current personal records, max weights, total sets, latest bodyweight, last session's numbers. All live.
-- Raw circumferences, goal labels, equipment list, injury list, dates of birth. All in the profile.
+Drop:
 - Small talk, pleasantries, greetings.
+- Specific sets / reps / weights / exercise names from the program.
+- Current PRs, bodyweight, latest-session numbers — all live elsewhere.
 
-Output a single paragraph under 200 tokens. No bullet lists. No preamble. No mention of specific exercise names, sets, reps, or weights — refer to "the current program" or "the prescribed block" in the abstract.`;
+Output a single paragraph under 200 tokens. No bullet lists. No preamble.`;
 
 /**
  * Rolling-summary regenerator. Fires asynchronously after the coach
@@ -79,15 +89,15 @@ export class RollingSummaryService {
   }
 
   /** On-demand refresh triggered from the UI ("Обновить контекст"
-   * in settings). Unlike the event-driven incremental fold, this is a
-   * full REBUILD: the prior summary is discarded entirely (so a stale
-   * narrative referencing an obsolete program / body stat can't seep
-   * forward through paraphrase), and we compose a new paragraph from
-   * the last REBUILD_TAIL_SIZE messages regardless of summarizedAt.
-   * Surfaces errors to the caller. */
+   * in settings). Same incremental fold as the event-driven path —
+   * prior summary + unsummarized tail + live ground truth — but
+   * surfaces errors to the caller. The summarizer is instructed to
+   * reconcile against the injected ground truth, so stale phrases
+   * (old program, healed injuries, abandoned goals) get dropped
+   * instead of paraphrased forward. */
   async refresh(userId: number): Promise<void> {
     if (!this.client) return;
-    await this.rebuild(userId);
+    await this.regenerate(userId);
   }
 
   /** Cron job: delete CoachMessages whose summarizedAt is older than
@@ -123,72 +133,23 @@ export class RollingSummaryService {
     });
     if (tail.length === 0) return;
 
-    const previous = await this.contextService.getOrCreate(userId);
+    const [previous, groundTruth] = await Promise.all([
+      this.contextService.getOrCreate(userId),
+      this.contextService.buildSummarizerSnapshot(userId),
+    ]);
     const prior = previous.rollingSummary?.trim() ?? '';
 
-    const next = await this.compress(prior, tail);
-    if (!next) return;
-
-    const summarizedAt = new Date();
-    await this.contextService.applyRegeneratedSummary(userId, next);
-    await this.messageModel.update(
-      { summarizedAt },
-      { where: { id: { [Op.in]: tail.map((m) => m.id) } } },
-    );
-    this.logger.log(
-      `rolling-summary regenerated for userId=${userId} (${next.length} chars, ${tail.length} msgs folded)`,
-    );
-  }
-
-  private async rebuild(userId: number): Promise<void> {
-    if (!this.client) return;
-
-    // Clear first so that if compression fails we still land in a
-    // clean "no summary yet" state rather than keeping the stale one.
-    await this.contextService.applyRegeneratedSummary(userId, '');
-
-    const tail = await this.messageModel.findAll({
-      where: { userId },
-      order: [['createdAt', 'DESC']],
-      limit: REBUILD_TAIL_SIZE,
-    });
-    if (tail.length === 0) {
-      this.logger.log(`rolling-summary rebuild: no messages for userId=${userId}`);
-      return;
-    }
-    tail.reverse();
-
-    // Deliberately pass no prior — this is a full reset, we don't want
-    // the stale narrative to leak through paraphrasing.
-    const next = await this.compress('', tail);
-    if (!next) return;
-
-    const summarizedAt = new Date();
-    await this.contextService.applyRegeneratedSummary(userId, next);
-    await this.messageModel.update(
-      { summarizedAt },
-      {
-        where: {
-          id: { [Op.in]: tail.map((m) => m.id) },
-          summarizedAt: null,
-        },
-      },
-    );
-    this.logger.log(
-      `rolling-summary rebuilt for userId=${userId} (${next.length} chars, ${tail.length} msgs)`,
-    );
-  }
-
-  private async compress(prior: string, tail: CoachMessage[]): Promise<string> {
-    if (!this.client) return '';
     const tailText = tail
       .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
       .join('\n');
     const userPrompt = [
-      'Previous summary:',
+      '## Previous summary (may be stale)',
       prior || '(none yet)',
       '',
-      'Recent conversation tail:',
+      '## Current ground truth (authoritative — pulled fresh from DB)',
+      groundTruth,
+      '',
+      '## Recent conversation tail',
       tailText,
     ].join('\n');
 
@@ -201,6 +162,17 @@ export class RollingSummaryService {
         { role: 'user', content: userPrompt },
       ],
     });
-    return completion.choices[0]?.message?.content?.trim() ?? '';
+    const next = completion.choices[0]?.message?.content?.trim() ?? '';
+    if (!next) return;
+
+    const summarizedAt = new Date();
+    await this.contextService.applyRegeneratedSummary(userId, next);
+    await this.messageModel.update(
+      { summarizedAt },
+      { where: { id: { [Op.in]: tail.map((m) => m.id) } } },
+    );
+    this.logger.log(
+      `rolling-summary regenerated for userId=${userId} (${next.length} chars, ${tail.length} msgs folded)`,
+    );
   }
 }

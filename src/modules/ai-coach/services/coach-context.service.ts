@@ -140,6 +140,49 @@ export class CoachContextService {
     );
   }
 
+  /** Compact live-state snapshot for the summarizer. We hand the
+   * summarizer not just the stale prior summary + recent chat, but
+   * also the ground truth it should reconcile against — so phrases
+   * like "user's program is FULL_BODY_5" don't paraphrase forward
+   * when the current program is actually PushPull v1. */
+  async buildSummarizerSnapshot(userId: number): Promise<string> {
+    const ctx = await this.getOrCreate(userId);
+    const [program, latestBody] = await Promise.all([
+      this.currentProgram(userId),
+      this.latestMeasurement(userId),
+    ]);
+    const profile = ctx.profile ?? {};
+
+    const programLine = program
+      ? `${program.name ?? 'Program'} · v${program.version}`
+      : 'no program saved';
+
+    const bodyBits: string[] = [];
+    if (latestBody) {
+      if (latestBody.weight != null) bodyBits.push(`weight ${Number(latestBody.weight).toFixed(1)} kg`);
+      if (latestBody.waist != null) bodyBits.push(`waist ${Number(latestBody.waist).toFixed(1)} cm`);
+      if (latestBody.chest != null) bodyBits.push(`chest ${Number(latestBody.chest).toFixed(1)} cm`);
+      if (latestBody.arm != null) bodyBits.push(`arm ${Number(latestBody.arm).toFixed(1)} cm`);
+    }
+    const bodyLine = latestBody
+      ? `${latestBody.date} — ${bodyBits.join(', ') || 'no measurements recorded on that date'}`
+      : 'no body measurements logged';
+
+    const injuries =
+      (profile.injuries?.length ?? 0) > 0
+        ? profile.injuries!.join('; ')
+        : 'none reported';
+    const healthNotes = profile.healthNotes?.trim() || 'none reported';
+
+    return [
+      `- Goal: ${profile.goal ?? 'not set'}`,
+      `- Current program: ${programLine}`,
+      `- Latest body snapshot: ${bodyLine}`,
+      `- Injuries: ${injuries}`,
+      `- Health notes: ${healthNotes}`,
+    ].join('\n');
+  }
+
   async buildRunInstructions(userId: number): Promise<string> {
     const ctx = await this.getOrCreate(userId);
     const [user, aggregates, topPrs, program, lastSessions, latestBody] =
