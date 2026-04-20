@@ -31,7 +31,9 @@
     "finish": "Finish",
     "add": "Add",
     "remove": "Remove",
-    "none": "None"
+    "none": "None",
+    "unit_cm": "cm",
+    "unit_kg": "kg"
   },
   "toasts": {
     "network_error": "Network error. Check your connection.",

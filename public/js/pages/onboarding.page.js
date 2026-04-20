@@ -525,7 +525,7 @@ export class OnboardingPage extends Page {
     const rows = [
       [i18n.t('onboarding.review_sex'), this.draft.sex ? i18n.t(`onboarding.sex_${this.draft.sex}`) : ''],
       [i18n.t('onboarding.review_birthday'), this.draft.dateOfBirth],
-      [i18n.t('onboarding.review_height'), `${this.draft.heightCm} cm`],
+      [i18n.t('onboarding.review_height'), `${this.draft.heightCm} ${i18n.t('common.unit_cm')}`],
       [i18n.t('onboarding.review_goal'), this.draft.goal ? i18n.t(`onboarding.goal_${this.draft.goal}`) : ''],
       [i18n.t('onboarding.review_level'), this.draft.experienceLevel ? i18n.t(`onboarding.experience_${this.draft.experienceLevel}`) : ''],
       [i18n.t('onboarding.review_days'), this.draft.trainingDaysPerWeek],
@@ -539,7 +539,7 @@ export class OnboardingPage extends Page {
         i18n.t('onboarding.review_injuries'),
         (this.draft.injuries ?? []).join(', ') || i18n.t('common.none'),
       ],
-      [i18n.t('onboarding.review_weight'), `${this.draft.weight} kg`],
+      [i18n.t('onboarding.review_weight'), `${this.draft.weight} ${i18n.t('common.unit_kg')}`],
     ];
     for (const [label, value] of rows) {
       const row = Page.el('div', { className: 'onboarding-summary__row' });

@@ -92,11 +92,17 @@ export class SettingsPage extends Page {
         text: code.toUpperCase(),
       });
       btn.type = 'button';
-      this.on(btn, 'click', () => {
+      this.on(btn, 'click', async () => {
         haptics.select();
         i18n.setLang(code);
-        toast.show(i18n.t('settings.saved'), { variant: 'success' });
         this.rerender();
+        try {
+          await api.patch('/api/users/language', { language: code });
+          toast.show(i18n.t('toasts.saved'), { variant: 'success' });
+        } catch {
+          // Keep the in-memory switch even if persistence fails.
+          toast.show(i18n.t('common.error'), { variant: 'error' });
+        }
       });
       wrap.append(btn);
     }

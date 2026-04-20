@@ -51,6 +51,10 @@ async function boot() {
     telegram.expand();
     applyPersistedTheme();
     await i18n.load();
+    // Provisional language from Telegram initData. Used only until
+    // we can read the user's stored preference from the backend —
+    // after that the DB wins (user may have picked a language in
+    // Settings that differs from their Telegram system language).
     i18n.setLang(i18n.detectLang(telegram.user?.language_code));
 
     const authResult = await api.authenticateWithTelegram();
@@ -64,6 +68,9 @@ async function boot() {
     }
 
     const me = await api.get('/api/users/me').catch(() => null);
+    // Persisted user.language overrides Telegram's language_code.
+    if (me?.language) i18n.setLang(me.language);
+
     if (!me?.onboardedAt) mountOnboarding();
     else mountShell();
   } catch (err) {

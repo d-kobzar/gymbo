@@ -6,6 +6,7 @@ import { CoachContext } from '@modules/ai-coach/models/coach-context.model';
 import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
 import { OnboardingDto } from './dto/onboarding.dto';
 import { ProfileUpdateDto } from './dto/profile-update.dto';
+import { UpdateLanguageDto } from './dto/update-language.dto';
 import { User } from './models/user.model';
 import { OnboardingService } from './services/onboarding.service';
 
@@ -77,6 +78,15 @@ export class UsersController {
     @Body() dto: ProfileUpdateDto,
   ) {
     await this.onboarding.update(userId, dto);
+    return { ok: true };
+  }
+
+  @Patch('language')
+  async updateLanguage(
+    @CurrentUser('id') userId: number,
+    @Body() dto: UpdateLanguageDto,
+  ) {
+    await this.userModel.update({ language: dto.language }, { where: { id: userId } });
     return { ok: true };
   }
 }
