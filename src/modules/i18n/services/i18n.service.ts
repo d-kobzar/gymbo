@@ -2,15 +2,19 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const SUPPORTED_LANGS = ['en', 'ua', 'ru'];
+const SUPPORTED_LANGS = ['en', 'ua', 'ru'] as const;
 const DEFAULT_LANG = 'en';
+
+export type SupportedLang = (typeof SUPPORTED_LANGS)[number];
+type LocaleTree = { [key: string]: string | LocaleTree };
 
 @Injectable()
 export class I18nService implements OnModuleInit {
-  private locales: Record<string, Record<string, any>> = {};
+  private locales: Record<string, LocaleTree> = {};
 
-  onModuleInit() {
-    const localesDir = path.join(__dirname, 'locales');
+  onModuleInit(): void {
+    // Locales sit next to this file: modules/i18n/locales/*.json.
+    const localesDir = path.join(__dirname, '..', 'locales');
     for (const lang of SUPPORTED_LANGS) {
       const filePath = path.join(localesDir, `${lang}.json`);
       if (fs.existsSync(filePath)) {
@@ -19,14 +23,16 @@ export class I18nService implements OnModuleInit {
     }
   }
 
-  t(key: string, lang: string, params?: Record<string, any>): string {
-    const resolvedLang = SUPPORTED_LANGS.includes(lang) ? lang : DEFAULT_LANG;
+  t(key: string, lang: string, params?: Record<string, unknown>): string {
+    const resolvedLang = (SUPPORTED_LANGS as readonly string[]).includes(lang)
+      ? lang
+      : DEFAULT_LANG;
     const keys = key.split('.');
 
-    let value: any = this.locales[resolvedLang];
+    let value: string | LocaleTree | undefined = this.locales[resolvedLang];
     for (const k of keys) {
       if (value == null || typeof value !== 'object') return key;
-      value = value[k];
+      value = (value as LocaleTree)[k];
     }
 
     if (typeof value !== 'string') return key;
@@ -43,7 +49,7 @@ export class I18nService implements OnModuleInit {
   detectLang(code?: string): string {
     if (!code) return DEFAULT_LANG;
     if (code === 'uk') return 'ua';
-    if (SUPPORTED_LANGS.includes(code)) return code;
+    if ((SUPPORTED_LANGS as readonly string[]).includes(code)) return code;
     return DEFAULT_LANG;
   }
 }

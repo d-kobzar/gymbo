@@ -6,7 +6,7 @@ import {
 import { InjectModel } from '@nestjs/sequelize';
 import { BodyMeasurement } from './body-measurement.model';
 import { MeasurementPhoto } from './measurement-photo.model';
-import { StorageService } from '../storage/storage.service';
+import { StorageService } from '@modules/storage/services/storage.service';
 
 const METRIC_WHITELIST = [
   'weight',

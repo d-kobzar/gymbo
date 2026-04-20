@@ -4,7 +4,7 @@ import { BodyMeasurement } from './body-measurement.model';
 import { MeasurementPhoto } from './measurement-photo.model';
 import { MeasurementsService } from './measurements.service';
 import { MeasurementsController } from './measurements.controller';
-import { StorageModule } from '../storage/storage.module';
+import { StorageModule } from '@modules/storage/storage.module';
 
 @Module({
   imports: [

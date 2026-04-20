@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
   PutObjectCommand,
@@ -6,29 +7,24 @@ import {
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import type { StorageConfig } from '@core/config/storage.config';
 
 @Injectable()
 export class StorageService {
   private readonly s3: S3Client;
   private readonly bucket: string;
 
-  constructor() {
+  constructor(config: ConfigService) {
+    const cfg = config.getOrThrow<StorageConfig>('storage');
     this.s3 = new S3Client({
-      endpoint: process.env.B2_ENDPOINT,
-      region: process.env.B2_REGION || 'us-east-005',
-      credentials: {
-        accessKeyId: process.env.B2_KEY_ID || '',
-        secretAccessKey: process.env.B2_APP_KEY || '',
-      },
+      endpoint: cfg.endpoint,
+      region: cfg.region || 'us-east-005',
+      credentials: { accessKeyId: cfg.keyId, secretAccessKey: cfg.appKey },
     });
-    this.bucket = process.env.B2_BUCKET || '';
+    this.bucket = cfg.bucket;
   }
 
-  async upload(
-    buffer: Buffer,
-    key: string,
-    contentType: string,
-  ): Promise<string> {
+  async upload(buffer: Buffer, key: string, contentType: string): Promise<string> {
     await this.s3.send(
       new PutObjectCommand({
         Bucket: this.bucket,
@@ -41,19 +37,11 @@ export class StorageService {
   }
 
   async getSignedUrl(key: string, expiresIn = 3600): Promise<string> {
-    const command = new GetObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-    });
+    const command = new GetObjectCommand({ Bucket: this.bucket, Key: key });
     return getSignedUrl(this.s3, command, { expiresIn });
   }
 
   async delete(key: string): Promise<void> {
-    await this.s3.send(
-      new DeleteObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-      }),
-    );
+    await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 }

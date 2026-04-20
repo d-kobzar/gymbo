@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/sequelize';
 import { NotificationSetting } from '../notifications/notification-setting.model';
 import { User } from '../users/user.model';
 import { BotService } from './bot.service';
-import { I18nService } from '../i18n/i18n.service';
+import { I18nService } from '@modules/i18n/services/i18n.service';
 
 @Injectable()
 export class SchedulerService implements OnModuleInit {

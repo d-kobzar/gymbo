@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Telegraf, Markup } from 'telegraf';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from '../users/user.model';
-import { I18nService } from '../i18n/i18n.service';
+import { I18nService } from '@modules/i18n/services/i18n.service';
 
 @Injectable()
 export class BotService {
