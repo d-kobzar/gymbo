@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject, forwardRef, Logger } from '@nestjs/common';
 import { BotService } from './bot.service';
 import { I18nService } from '@modules/i18n/services/i18n.service';
-import { AiService } from '../ai/ai.service';
+import { CoachService } from '@modules/ai-coach/services/coach.service';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from '@modules/users/models/user.model';
 
@@ -12,7 +12,7 @@ export class BotUpdate implements OnModuleInit {
   constructor(
     private botService: BotService,
     private i18n: I18nService,
-    @Inject(forwardRef(() => AiService)) private aiService: AiService,
+    @Inject(forwardRef(() => CoachService)) private coachService: CoachService,
     @InjectModel(User) private userModel: typeof User,
   ) {}
 
@@ -90,7 +90,7 @@ export class BotUpdate implements OnModuleInit {
 
       try {
         await ctx.sendChatAction('typing');
-        const reply = await this.aiService.chat(activeUser.id, ctx.message.text);
+        const reply = await this.coachService.chat(activeUser.id, ctx.message.text);
         await this.sendFormatted(ctx, reply);
       } catch (err) {
         this.logger.error(`Bot AI error: ${(err as Error).message || err}`);

@@ -6,12 +6,12 @@ import { BotController } from './bot.controller';
 import { SchedulerService } from './scheduler.service';
 import { NotificationSetting } from '@modules/notifications/models/notification-setting.model';
 import { User } from '@modules/users/models/user.model';
-import { AiModule } from '../ai/ai.module';
+import { AiCoachModule } from '@modules/ai-coach/ai-coach.module';
 
 @Module({
   imports: [
     SequelizeModule.forFeature([User, NotificationSetting]),
-    forwardRef(() => AiModule),
+    forwardRef(() => AiCoachModule),
   ],
   controllers: [BotController],
   providers: [BotService, BotUpdate, SchedulerService],

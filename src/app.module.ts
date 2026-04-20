@@ -27,7 +27,7 @@ import { StatsModule } from '@modules/stats/stats.module';
 import { BackupModule } from '@modules/backup/backup.module';
 import { NotificationsModule } from '@modules/notifications/notifications.module';
 import { BotModule } from './bot/bot.module';
-import { AiModule } from './ai/ai.module';
+import { AiCoachModule } from '@modules/ai-coach/ai-coach.module';
 
 @Module({
   imports: [
@@ -57,7 +57,7 @@ import { AiModule } from './ai/ai.module';
     BackupModule,
     NotificationsModule,
     BotModule,
-    AiModule,
+    AiCoachModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
