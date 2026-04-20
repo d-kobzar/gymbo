@@ -6,7 +6,7 @@ import {
   ForeignKey,
   BelongsTo,
 } from 'sequelize-typescript';
-import { User } from '../users/user.model';
+import { User } from '@modules/users/models/user.model';
 
 @Table({ tableName: 'AiThreads', timestamps: true, updatedAt: false })
 export class AiThread extends Model {

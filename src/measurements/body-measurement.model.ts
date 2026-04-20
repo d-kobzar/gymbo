@@ -7,7 +7,7 @@ import {
   BelongsTo,
   HasMany,
 } from 'sequelize-typescript';
-import { User } from '../users/user.model';
+import { User } from '@modules/users/models/user.model';
 import { MeasurementPhoto } from './measurement-photo.model';
 
 @Table({ tableName: 'BodyMeasurements', timestamps: true, updatedAt: false })

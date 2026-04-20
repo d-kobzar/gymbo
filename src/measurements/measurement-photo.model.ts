@@ -7,7 +7,7 @@ import {
   BelongsTo,
 } from 'sequelize-typescript';
 import { BodyMeasurement } from './body-measurement.model';
-import { User } from '../users/user.model';
+import { User } from '@modules/users/models/user.model';
 
 @Table({ tableName: 'MeasurementPhotos', timestamps: true, updatedAt: false })
 export class MeasurementPhoto extends Model {

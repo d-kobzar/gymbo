@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { User } from './user.model';
+import { User } from '../models/user.model';
+
+export interface CreateUserInput {
+  telegramId: number;
+  name: string;
+  language?: string;
+  chatId?: number;
+}
 
 @Injectable()
 export class UsersService {
@@ -9,21 +16,16 @@ export class UsersService {
     private readonly userModel: typeof User,
   ) {}
 
-  async findByTelegramId(telegramId: number): Promise<User | null> {
+  findByTelegramId(telegramId: number): Promise<User | null> {
     return this.userModel.findOne({ where: { telegramId } });
   }
 
-  async findById(id: number): Promise<User | null> {
+  findById(id: number): Promise<User | null> {
     return this.userModel.findByPk(id);
   }
 
-  async create(data: {
-    telegramId: number;
-    name: string;
-    language?: string;
-    chatId?: number;
-  }): Promise<User> {
-    return this.userModel.create(data as any);
+  create(data: CreateUserInput): Promise<User> {
+    return this.userModel.create(data as Partial<User>);
   }
 
   async update(id: number, data: Partial<User>): Promise<User | null> {

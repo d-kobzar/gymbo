@@ -6,7 +6,7 @@ import {
   ForeignKey,
   BelongsTo,
 } from 'sequelize-typescript';
-import { User } from '../users/user.model';
+import { User } from '@modules/users/models/user.model';
 
 @Table({ tableName: 'NotificationSettings', timestamps: true })
 export class NotificationSetting extends Model {

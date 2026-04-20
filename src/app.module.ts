@@ -16,7 +16,7 @@ import { TransformInterceptor } from './shared/interceptors/transform.intercepto
 
 // Feature modules
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
+import { UsersModule } from '@modules/users/users.module';
 import { I18nModule } from '@modules/i18n/i18n.module';
 import { StorageModule } from '@modules/storage/storage.module';
 import { ExercisesModule } from './exercises/exercises.module';

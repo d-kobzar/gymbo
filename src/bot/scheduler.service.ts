@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as cron from 'node-cron';
 import { InjectModel } from '@nestjs/sequelize';
 import { NotificationSetting } from '../notifications/notification-setting.model';
-import { User } from '../users/user.model';
+import { User } from '@modules/users/models/user.model';
 import { BotService } from './bot.service';
 import { I18nService } from '@modules/i18n/services/i18n.service';
 

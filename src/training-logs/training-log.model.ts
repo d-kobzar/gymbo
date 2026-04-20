@@ -6,7 +6,7 @@ import {
   ForeignKey,
   BelongsTo,
 } from 'sequelize-typescript';
-import { User } from '../users/user.model';
+import { User } from '@modules/users/models/user.model';
 import { Exercise } from '../exercises/exercise.model';
 
 @Table({ tableName: 'TrainingLogs', timestamps: true, updatedAt: false })

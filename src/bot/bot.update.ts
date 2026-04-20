@@ -3,7 +3,7 @@ import { BotService } from './bot.service';
 import { I18nService } from '@modules/i18n/services/i18n.service';
 import { AiService } from '../ai/ai.service';
 import { InjectModel } from '@nestjs/sequelize';
-import { User } from '../users/user.model';
+import { User } from '@modules/users/models/user.model';
 
 @Injectable()
 export class BotUpdate implements OnModuleInit {

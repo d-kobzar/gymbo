@@ -7,7 +7,7 @@ import {
   BelongsTo,
   HasMany,
 } from 'sequelize-typescript';
-import { User } from '../users/user.model';
+import { User } from '@modules/users/models/user.model';
 import { TrainingLog } from '../training-logs/training-log.model';
 import { ProgramExercise } from '../programs/program-exercise.model';
 

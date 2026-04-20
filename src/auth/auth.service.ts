@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
-import { UsersService } from '../users/users.service';
+import { UsersService } from '@modules/users/services/users.service';
 
 export interface TelegramUser {
   id: number;
