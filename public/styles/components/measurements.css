@@ -299,17 +299,43 @@
 }
 
 .measure-form__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
   min-width: 0;
 }
 
 .measure-form__grid > .input-group {
   min-width: 0;
+  gap: var(--space-2);
 }
 
 .measure-form .input {
   width: 100%;
   min-width: 0;
+  min-height: 56px;
+  padding: var(--space-5) var(--space-7);
+  border: 1px solid var(--border-default);
+  background: var(--surface-base);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+}
+
+.measure-form .input--numeric {
+  font-family: var(--font-sans);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+}
+
+.measure-form .input:focus {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+}
+
+.measure-form .input-label {
+  font-size: var(--text-xxs);
+  letter-spacing: 1.2px;
 }

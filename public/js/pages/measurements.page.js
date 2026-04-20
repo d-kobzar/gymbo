@@ -381,10 +381,11 @@ export class MeasurementsPage extends Page {
       const grid = Page.el('div', { className: 'measure-form__grid' });
       for (const metric of group.metrics) {
         const field = Page.el('div', { className: 'input-group' });
+        const unit = metric.id === 'weight' ? i18n.t('common.unit_kg') : i18n.t('common.unit_cm');
         field.append(
           Page.el('label', {
             className: 'input-label',
-            text: i18n.t(`measurements.${metric.id}`),
+            text: `${i18n.t(`measurements.${metric.id}`)} · ${unit}`,
           }),
         );
         const input = document.createElement('input');
@@ -393,6 +394,7 @@ export class MeasurementsPage extends Page {
         input.inputMode = 'decimal';
         input.step = metric.step != null ? String(metric.step) : '0.5';
         input.name = metric.id;
+        input.placeholder = '—';
         inputs[metric.id] = input;
         field.append(input);
         grid.append(field);
