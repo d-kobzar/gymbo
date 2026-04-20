@@ -283,13 +283,8 @@ export class MeasurementsPage extends Page {
 
     sheet.setBody(form);
     sheet.open();
-
-    if (telegram.isAvailable) {
-      telegram.mainButton.show(
-        { text: i18n.t('common.save').toUpperCase() },
-        () => form.requestSubmit(),
-      );
-    }
+    // In-page Save button inside the form handles submit; Telegram
+    // MainButton is intentionally unused (wrong color for V2).
   }
 
   renderDateRow() {

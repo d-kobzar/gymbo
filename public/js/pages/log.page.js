@@ -68,7 +68,8 @@ export class LogPage extends Page {
     this.restoreDraft();
     this.applyInitialExercise();
     void this.load();
-    this.wireMainButton();
+    // Defensively hide MainButton in case another page left it up.
+    telegram.mainButton.hide();
   }
 
   destroy() {
@@ -140,8 +141,19 @@ export class LogPage extends Page {
       this.numericInput('rir', i18n.t('workout.rir'), { min: 0, max: 10 }),
     );
     wrap.append(grid);
-    // Submission flows exclusively through Telegram MainButton — no
-    // in-page duplicate button under the menu.
+
+    // In-page "Add Set" button — amber on dark per the V2 design.
+    // We intentionally do NOT use Telegram's MainButton: its system
+    // color (blue on dark) breaks the design, and users reported
+    // seeing it under the menu with no way to recolor.
+    const addBtn = Page.el('button', {
+      className: 'button button--primary button--lg button--block',
+      text: i18n.t('workout.add_set'),
+    });
+    addBtn.type = 'button';
+    this.on(addBtn, 'click', this.submit);
+    wrap.append(addBtn);
+
     return wrap;
   }
 
@@ -311,14 +323,6 @@ export class LogPage extends Page {
     }
     const rir = last.rir != null ? ` RIR ${last.rir}` : '';
     this.lastSessionEl.textContent = `Last: ${last.reps} × ${Number(last.weight)} kg${rir}`;
-  }
-
-  wireMainButton() {
-    if (!telegram.isAvailable) return;
-    telegram.mainButton.show(
-      { text: i18n.t('workout.add_set').toUpperCase(), disabled: false },
-      () => this.submit(),
-    );
   }
 
   submit = async () => {
