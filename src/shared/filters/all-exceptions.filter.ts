@@ -7,6 +7,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import {
+  UniqueConstraintError,
+  ValidationError as SequelizeValidationError,
+} from 'sequelize';
 
 export interface ErrorEnvelope {
   error: {
@@ -46,6 +50,40 @@ export class AllExceptionsFilter implements ExceptionFilter {
     exception: unknown,
     requestId?: string,
   ): { status: number; envelope: ErrorEnvelope } {
+    if (exception instanceof UniqueConstraintError) {
+      return {
+        status: HttpStatus.CONFLICT,
+        envelope: {
+          error: {
+            code: 'CONFLICT',
+            message: this.sequelizeDetail(exception) ?? 'Already exists',
+            details: exception.errors?.map((e) => ({
+              path: e.path,
+              message: e.message,
+            })),
+          },
+          requestId,
+        },
+      };
+    }
+
+    if (exception instanceof SequelizeValidationError) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        envelope: {
+          error: {
+            code: 'BAD_REQUEST',
+            message: this.sequelizeDetail(exception) ?? 'Invalid data',
+            details: exception.errors?.map((e) => ({
+              path: e.path,
+              message: e.message,
+            })),
+          },
+          requestId,
+        },
+      };
+    }
+
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const raw = exception.getResponse();
@@ -101,6 +139,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         requestId,
       },
     };
+  }
+
+  private sequelizeDetail(err: SequelizeValidationError): string | undefined {
+    const first = err.errors?.[0];
+    if (!first) return undefined;
+    return first.path ? `${first.path}: ${first.message}` : first.message;
   }
 
   private codeFromStatus(status: number): string {
