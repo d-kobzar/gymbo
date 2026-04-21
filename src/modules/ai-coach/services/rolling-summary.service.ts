@@ -44,6 +44,7 @@ Drop:
 - Small talk, pleasantries, greetings.
 - Specific sets / reps / weights / exercise names from the program.
 - Current PRs, bodyweight, latest-session numbers — all live elsewhere.
+- Generic training parameters already given as advice: rest intervals, RIR targets, warm-up protocols, set / rep ranges, time-under-tension guidelines. These are re-derivable every turn and do not belong in a narrative.
 
 Output a single paragraph under 200 tokens. No bullet lists. No preamble.`;
 
