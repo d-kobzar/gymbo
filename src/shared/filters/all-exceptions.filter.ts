@@ -37,6 +37,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
         `${request.method} ${request.url} → ${status} ${envelope.error.code}: ${envelope.error.message}`,
         exception instanceof Error ? exception.stack : undefined,
       );
+    } else if (
+      exception instanceof SequelizeValidationError ||
+      exception instanceof UniqueConstraintError
+    ) {
+      // Surface the real DB-level failure reason so the server log
+      // shows field-level detail even when the client only gets the
+      // envelope. Crucial for diagnosing "Validation error" toasts.
+      this.logger.warn(
+        `${request.method} ${request.url} → ${status} ${envelope.error.code}: ${envelope.error.message} | details=${JSON.stringify(envelope.error.details ?? null)}`,
+      );
     } else {
       this.logger.debug(
         `${request.method} ${request.url} → ${status} ${envelope.error.code}`,
