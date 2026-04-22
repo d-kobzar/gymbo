@@ -65,6 +65,10 @@ export class CoachAgentService {
         messages,
         tools,
         maxOutputTokens: this.maxOutputTokens,
+        // Lower temperature so the model follows the strict scope /
+        // no-restate / no-dump rules instead of "being creative".
+        // Default (1.0) consistently ignored them.
+        temperature: 0.4,
       });
 
       const hasToolCalls = response.toolCalls.length > 0;

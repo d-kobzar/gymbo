@@ -226,7 +226,10 @@ export class CoachContextService {
       `- Local date: ${moment.date} (${moment.dowLabel})`,
       `- Local time: ${moment.time} (${moment.partOfDay})`,
       `- Timezone: ${tz}`,
-      `- Today's scheduled workout (reference only — DO NOT restate unless the athlete explicitly asks about it): ${todayPlanLine}`,
+      // The "today's workout" day is already marked with "← today" in
+      // the Current program block below. Printing the exercise list
+      // inline here turned out to be a strong trigger for the model
+      // to restate it in every reply — removed on purpose.
       '',
       '### GROUND TRUTH — reference data only, pulled fresh every turn.',
       '### This block is NOT a template for your reply. Do not quote from it,',
