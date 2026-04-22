@@ -84,7 +84,7 @@ export class RollingSummaryService {
     if (!this.client || !payload?.userId) return;
     const userId = payload.userId;
     if (this.inflight.has(userId)) return; // already processing
-    const task = this.summarizeContext(userId).finally(() => {
+    const task = this.summarizeContext(userId, { preserveTail: PRESERVE_TAIL }).finally(() => {
       this.inflight.delete(userId);
     });
     this.inflight.set(userId, task);
@@ -97,10 +97,13 @@ export class RollingSummaryService {
     }
   }
 
-  /** On-demand refresh from settings. Surfaces errors to the caller. */
+  /** On-demand refresh from settings. Unlike the event-driven fold
+   * which preserves the last 3 in-flight messages, the UI-triggered
+   * refresh folds the WHOLE Active Buffer — the athlete explicitly
+   * asked to rebuild memory now, including the most recent turns. */
   async refresh(userId: number): Promise<void> {
     if (!this.client) return;
-    await this.summarizeContext(userId);
+    await this.summarizeContext(userId, { preserveTail: 0 });
   }
 
   /**
@@ -128,13 +131,19 @@ export class RollingSummaryService {
     }
   }
 
-  private async summarizeContext(userId: number): Promise<void> {
+  private async summarizeContext(
+    userId: number,
+    opts: { preserveTail: number },
+  ): Promise<void> {
     if (!this.client) return;
 
     const buffer = await this.contextService.loadActiveBuffer(userId);
-    if (buffer.length <= PRESERVE_TAIL) return;
+    if (buffer.length === 0) return;
+    if (buffer.length <= opts.preserveTail) return;
 
-    const toSummarize = buffer.slice(0, buffer.length - PRESERVE_TAIL);
+    const toSummarize = opts.preserveTail
+      ? buffer.slice(0, buffer.length - opts.preserveTail)
+      : buffer;
 
     const [ctx, groundTruthSnapshot] = await Promise.all([
       this.contextService.getOrCreate(userId),
