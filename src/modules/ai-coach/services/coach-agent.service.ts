@@ -14,6 +14,7 @@ import { COACH_SUMMARY_REQUESTED } from './rolling-summary.service';
 import { ToolExecutorService } from './tool-executor.service';
 
 const MAX_TOOL_ROUNDS = 5;
+const BUFFER_TOKEN_THRESHOLD = 2000;
 
 /** Pinned to the very end of the instructions string — gpt-4o
  * weights trailing content more heavily than preamble, and the
@@ -32,7 +33,6 @@ const FINAL_DIRECTIVE = `### FINAL CHECK — apply before writing the reply
 
 export interface CoachAgentRequest {
   userId: number;
-  history: LlmMessage[];
 }
 
 export interface CoachAgentResponse {
@@ -41,13 +41,18 @@ export interface CoachAgentResponse {
 }
 
 /**
- * Provider-agnostic agent loop. Given the persisted conversation
- * history (read from CoachMessages by the caller), composes
- * system-level instructions (ASSISTANT_INSTRUCTIONS + Context moment +
- * profile / program / measurements / rolling summary) and drives the
- * tool-calling loop over LlmProvider. Tool calls and their outputs
- * live only in-memory for the duration of the turn; only the final
- * assistant text is handed back and persisted by the caller.
+ * Provider-agnostic agent loop.
+ *
+ * Per the hybrid-memory architecture, this service asks the context
+ * service to compose the full request payload (system instructions +
+ * entityMap + synthetic summary turn + Active Buffer) and drives the
+ * tool-calling loop over LlmProvider. It does NOT load messages
+ * itself — the Active Buffer already contains the athlete's latest
+ * turns (MessageQueue wrote them to DB before invoking the agent).
+ *
+ * Tool calls and their outputs live only in-memory for the duration
+ * of the turn; only the final assistant text is returned and
+ * persisted by the caller.
  */
 @Injectable()
 export class CoachAgentService {
@@ -68,16 +73,19 @@ export class CoachAgentService {
   }
 
   async run(request: CoachAgentRequest): Promise<CoachAgentResponse> {
-    const { userId, history } = request;
-    const instructions = await this.composeInstructions(userId);
+    const { userId } = request;
+    const { instructions, messages } = await this.contextService.composeContext(
+      userId,
+    );
+    const fullInstructions = `${ASSISTANT_INSTRUCTIONS}\n\n${instructions}\n\n${FINAL_DIRECTIVE}`;
     const tools = this.toolExecutor.getDefinitions();
-    const messages: LlmMessage[] = [...history];
+    const loopMessages: LlmMessage[] = [...messages];
 
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
       const response = await this.llm.chat({
         model: this.model,
-        instructions,
-        messages,
+        instructions: fullInstructions,
+        messages: loopMessages,
         tools,
         maxOutputTokens: this.maxOutputTokens,
         // Low temperature so the model follows strict scope /
@@ -92,7 +100,7 @@ export class CoachAgentService {
         return { text: response.text, finishReason: response.finishReason };
       }
 
-      messages.push({
+      loopMessages.push({
         role: 'assistant',
         content: response.text,
         toolCalls: response.toolCalls,
@@ -100,7 +108,7 @@ export class CoachAgentService {
 
       for (const call of response.toolCalls) {
         const toolResult = await this.executeCall(call, userId);
-        messages.push({
+        loopMessages.push({
           role: 'tool',
           toolCallId: call.id,
           output: toolResult,
@@ -118,30 +126,30 @@ export class CoachAgentService {
     };
   }
 
-  private async composeInstructions(userId: number): Promise<string> {
-    const context = await this.contextService.buildRunInstructions(userId).catch((err: Error) => {
-      this.logger.warn(`buildRunInstructions failed: ${err.message}`);
-      return '';
-    });
-    const body = context ? `${ASSISTANT_INSTRUCTIONS}\n\n${context}` : ASSISTANT_INSTRUCTIONS;
-    return `${body}\n\n${FINAL_DIRECTIVE}`;
-  }
-
   private async executeCall(call: LlmToolCall, userId: number): Promise<string> {
     let args: Record<string, unknown> = {};
     try {
       args = call.arguments ? JSON.parse(call.arguments) : {};
     } catch (err) {
-      this.logger.warn(`tool ${call.name} received malformed JSON: ${(err as Error).message}`);
+      this.logger.warn(
+        `tool ${call.name} received malformed JSON: ${(err as Error).message}`,
+      );
     }
     const execution = await this.toolExecutor.execute(call.name, args, userId);
     return JSON.stringify(execution.result);
   }
 
+  /**
+   * Token-based summarizer trigger. Fires an async event (non-
+   * blocking — handled by RollingSummaryService) when the Active
+   * Buffer crosses the threshold. The threshold is per-buffer, not
+   * per-request, so the full static instructions / ground truth do
+   * NOT count against it.
+   */
   private async afterRunCompleted(userId: number): Promise<void> {
     try {
-      const { shouldRegenerate } = await this.contextService.recordRunCompleted(userId);
-      if (shouldRegenerate) {
+      const bufferTokens = await this.contextService.countBufferTokens(userId);
+      if (bufferTokens > BUFFER_TOKEN_THRESHOLD) {
         this.events.emit(COACH_SUMMARY_REQUESTED, { userId });
       }
     } catch (err) {

@@ -17,55 +17,57 @@ export interface SummaryRequestedPayload {
 }
 
 const SUMMARY_MODEL = 'gpt-4o-mini';
-const SUMMARY_MAX_TOKENS = 300;
-const SUMMARY_TAIL_SIZE = 20;
+const SUMMARY_MAX_TOKENS = 800;
+const PRESERVE_TAIL = 3;
 
-const SUMMARY_SYSTEM_PROMPT = `You maintain a compressed rolling NARRATIVE of a strength coaching conversation.
+const SUMMARY_SYSTEM_PROMPT = `You maintain the long-term memory of a strength / hypertrophy coaching conversation.
 
-You will receive three things:
-1. The previous summary (may be stale — can reference an old program, old injuries since healed, old goals since abandoned).
-2. The athlete's CURRENT ground truth (live program, latest body snapshot, health). Pulled fresh from the database — this is authoritative.
-3. Recent conversation tail (the newest turns since the last summary).
+You receive:
+  - the current entity map (structured JSON of facts about the athlete),
+  - the previous running summary (text, may be empty),
+  - a snapshot of the athlete's current ground truth (program, body, health),
+  - a chunk of recent conversation messages to fold into memory.
 
-Your job: produce a single updated paragraph that reconciles them.
+Your job: produce the new versions of both memory layers and return them as strict JSON.
 
-Reconciliation rules:
-- If the previous summary references a program, injury, goal, or body fact that contradicts ground truth — DROP or UPDATE the contradicting phrase. The ground truth wins, every time. Do not paraphrase stale facts forward.
-- If ground truth mentions something the athlete never discussed in chat (e.g. a freshly-saved program), you can reference it by name only, but do not replicate its structure — that's always injected fresh separately.
-- You do not need to restate the ground truth. It is injected into every coach turn anyway.
+## newEntityMap (object)
+Update the entity map with any new durable facts revealed in the messages: ongoing injuries or pains, declared goals, dietary phase, lifestyle changes (sleep deficits, travel, illness), explicit preferences, decisions you and the athlete agreed to, named commitments. Remove entries that the athlete explicitly resolved or abandoned. Common keys: \`ongoingInjuries\`, \`currentGoal\`, \`dietPhase\`, \`motivationState\`, \`recentDecisions\` (small array of one-line strings), \`timeConstraints\`. Keys are free-form — pick what fits.
 
-Preserve:
-- The athlete's self-reported state across sessions (recurring soreness, sleep / stress / energy patterns, recovery issues).
-- Decisions the athlete and coach landed on, and the WHY behind them.
-- Behavioral patterns (consistency issues, time constraints, strong preferences, motivators / demotivators).
-- Pending next-session plan only if it was explicitly agreed.
+Do NOT store in entityMap:
+  - Program structure (exercises / sets / reps / weights).
+  - Current PRs, bodyweight, circumferences.
+  - Anything already in the ground truth snapshot.
 
-Drop:
-- Small talk, pleasantries, greetings.
-- Specific sets / reps / weights / exercise names from the program.
-- Current PRs, bodyweight, latest-session numbers — all live elsewhere.
-- Generic training parameters already given as advice: rest intervals, RIR targets, warm-up protocols, set / rep ranges, time-under-tension guidelines. These are re-derivable every turn and do not belong in a narrative.
+## newSummary (string, ≤ 200 tokens, single paragraph)
+A narrative pass of what was discussed and agreed. Behavioral patterns (consistency, adherence), self-reported state across turns, open threads. No specifics of the program. No rest-interval advice, RIR targets, warm-up protocols, set / rep ranges — those are re-derivable every turn and do not belong in a narrative.
 
-Output a single paragraph under 200 tokens. No bullet lists. No preamble.`;
+If the previous summary contradicts the ground truth snapshot (old program, healed injury, abandoned goal), drop the contradicting phrases — the ground truth wins.
+
+## Output — STRICT JSON, no prose, no markdown
+{"newEntityMap": { ... }, "newSummary": "..."}`;
 
 /**
- * Rolling-summary regenerator. Fires asynchronously after the coach
- * finishes a batch — reads the tail of CoachMessages from the DB,
- * compresses (previous summary + tail) into a new paragraph, writes
- * it back to CoachContext, and marks the consumed messages with
- * summarizedAt so the GC cron can delete them after the retention
- * window.
+ * Memory-update worker. Two entry points:
+ *   - Event-driven: COACH_SUMMARY_REQUESTED fires when the Active
+ *     Buffer token count crosses the threshold after a run.
+ *   - UI-driven: refresh() is invoked by the "Обновить контекст"
+ *     button in settings.
  *
- * Intentionally pinned to OpenAI for now — gpt-4o-mini is cheap and
- * fast for summarization and doesn't need the provider abstraction.
- * If/when a user wants full provider independence we can route this
- * through LlmProvider too.
+ * Both paths call summarizeContext(userId) which pulls the Active
+ * Buffer (minus the last few messages to preserve the current
+ * conversation thread), asks gpt-4o-mini to produce strict JSON with
+ * the updated entityMap and running summary, and applies both
+ * atomically via ContextService.applyMemoryUpdate.
+ *
+ * Runs off the request path so TTFT stays clean. Inflight guard
+ * prevents two parallel summarizations for the same user.
  */
 @Injectable()
 export class RollingSummaryService {
   private readonly logger = new Logger(RollingSummaryService.name);
   private readonly client: OpenAI | null;
   private readonly gcDays: number;
+  private readonly inflight = new Map<number, Promise<void>>();
 
   constructor(
     config: ConfigService,
@@ -80,48 +82,39 @@ export class RollingSummaryService {
   @OnEvent(COACH_SUMMARY_REQUESTED)
   async handle(payload: SummaryRequestedPayload): Promise<void> {
     if (!this.client || !payload?.userId) return;
+    const userId = payload.userId;
+    if (this.inflight.has(userId)) return; // already processing
+    const task = this.summarizeContext(userId).finally(() => {
+      this.inflight.delete(userId);
+    });
+    this.inflight.set(userId, task);
     try {
-      await this.regenerate(payload.userId);
+      await task;
     } catch (err) {
       this.logger.warn(
-        `rolling-summary regen failed for userId=${payload.userId}: ${(err as Error).message}`,
+        `memory update failed for userId=${userId}: ${(err as Error).message}`,
       );
     }
   }
 
-  /** On-demand refresh triggered from the UI ("Обновить контекст"
-   * in settings). Always produces a summary if the user has any
-   * message history at all — pulls the last N messages regardless
-   * of summarizedAt, and uses whatever prior exists (or nothing, if
-   * the user wiped it) as seed. The summarizer is instructed to
-   * reconcile against the injected live ground truth, so stale
-   * phrases (old program, healed injuries, abandoned goals) get
-   * dropped instead of paraphrased forward. */
+  /** On-demand refresh from settings. Surfaces errors to the caller. */
   async refresh(userId: number): Promise<void> {
     if (!this.client) return;
-    const tail = await this.messageModel.findAll({
-      where: { userId },
-      order: [['createdAt', 'DESC']],
-      limit: SUMMARY_TAIL_SIZE,
-    });
-    if (tail.length === 0) {
-      this.logger.log(`refresh: no messages for userId=${userId}`);
-      return;
-    }
-    tail.reverse();
-    await this.compressAndSave(userId, tail);
+    await this.summarizeContext(userId);
   }
 
-  /** Cron job: delete CoachMessages whose summarizedAt is older than
-   * the retention window (default 7 days). Runs once a day at 03:00
-   * server time — the window is not time-sensitive, we just want to
-   * bound storage growth. */
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  /**
+   * Weekly cleanup. Messages with summaryStatus='processed' whose
+   * summarizedAt is older than the retention window get dropped.
+   * Runs Sunday at midnight.
+   */
+  @Cron(CronExpression.EVERY_WEEK)
   async cleanupSummarizedMessages(): Promise<void> {
     const cutoff = new Date(Date.now() - this.gcDays * 24 * 60 * 60 * 1000);
     try {
       const deleted = await this.messageModel.destroy({
         where: {
+          summaryStatus: 'processed',
           summarizedAt: { [Op.ne]: null, [Op.lte]: cutoff },
         },
       });
@@ -135,74 +128,86 @@ export class RollingSummaryService {
     }
   }
 
-  private async regenerate(userId: number): Promise<void> {
+  private async summarizeContext(userId: number): Promise<void> {
     if (!this.client) return;
 
-    const tail = await this.messageModel.findAll({
-      where: { userId, summarizedAt: null },
-      order: [['createdAt', 'ASC']],
-      limit: SUMMARY_TAIL_SIZE,
-    });
-    if (tail.length === 0) return;
-    await this.compressAndSave(userId, tail);
-  }
+    const buffer = await this.contextService.loadActiveBuffer(userId);
+    if (buffer.length <= PRESERVE_TAIL) return;
 
-  private async compressAndSave(
-    userId: number,
-    tail: CoachMessage[],
-  ): Promise<void> {
-    if (!this.client) return;
+    const toSummarize = buffer.slice(0, buffer.length - PRESERVE_TAIL);
 
-    const [previous, groundTruth] = await Promise.all([
+    const [ctx, groundTruthSnapshot] = await Promise.all([
       this.contextService.getOrCreate(userId),
       this.contextService.buildSummarizerSnapshot(userId),
     ]);
-    const prior = previous.rollingSummary?.trim() ?? '';
 
-    const tailText = tail
+    const oldEntityMap = ctx.entityMap ?? {};
+    const oldSummary = ctx.rollingSummary?.trim() ?? '';
+    const conversationChunk = toSummarize
       .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
       .join('\n');
-    const userPrompt = [
-      '## Previous summary (may be stale)',
-      prior || '(none yet)',
+
+    const userPayload = [
+      '## Current entity map',
+      JSON.stringify(oldEntityMap, null, 2),
       '',
-      '## Current ground truth (authoritative — pulled fresh from DB)',
-      groundTruth,
+      '## Previous running summary',
+      oldSummary || '(none yet)',
       '',
-      '## Recent conversation tail',
-      tailText,
+      '## Current ground truth snapshot (authoritative)',
+      groundTruthSnapshot,
+      '',
+      '## Messages to fold in',
+      conversationChunk,
     ].join('\n');
 
     const completion = await this.client.chat.completions.create({
       model: SUMMARY_MODEL,
+      response_format: { type: 'json_object' },
       max_tokens: SUMMARY_MAX_TOKENS,
       temperature: 0.3,
       messages: [
         { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
+        { role: 'user', content: userPayload },
       ],
     });
-    const next = completion.choices[0]?.message?.content?.trim() ?? '';
-    if (!next) {
+
+    const raw = completion.choices[0]?.message?.content?.trim();
+    if (!raw) {
       this.logger.warn(
-        `summarizer returned empty for userId=${userId}; keeping prior summary`,
+        `summarizer returned empty for userId=${userId}; keeping prior memory`,
       );
       return;
     }
 
-    const summarizedAt = new Date();
-    await this.contextService.applyRegeneratedSummary(userId, next);
-    await this.messageModel.update(
-      { summarizedAt },
-      {
-        where: {
-          id: { [Op.in]: tail.map((m) => m.id) },
-          summarizedAt: null,
-        },
-      },
+    let parsed: { newEntityMap?: Record<string, unknown>; newSummary?: string };
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      this.logger.warn(
+        `summarizer returned non-JSON for userId=${userId}: ${(err as Error).message}`,
+      );
+      return;
+    }
+
+    const newEntityMap =
+      parsed.newEntityMap && typeof parsed.newEntityMap === 'object'
+        ? parsed.newEntityMap
+        : oldEntityMap;
+    const newSummary =
+      typeof parsed.newSummary === 'string' && parsed.newSummary.trim()
+        ? parsed.newSummary.trim()
+        : oldSummary;
+
+    await this.contextService.applyMemoryUpdate(
+      userId,
+      newEntityMap,
+      newSummary,
+      toSummarize.map((m) => m.id),
     );
+
     this.logger.log(
-      `rolling-summary saved for userId=${userId} (${next.length} chars, ${tail.length} msgs)`,
+      `memory updated for userId=${userId} (${toSummarize.length} msgs folded, ${Object.keys(newEntityMap).length} entity-map keys, summary ${newSummary.length} chars)`,
     );
   }
 }

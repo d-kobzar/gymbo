@@ -12,14 +12,12 @@ import { Op } from 'sequelize';
 import type { LlmConfig } from '@core/config/llm.config';
 import { I18nService } from '@modules/i18n/services/i18n.service';
 import { BotService } from '@modules/bot/services/bot.service';
-import type { LlmMessage } from '@modules/llm/llm-provider.interface';
 import { User } from '@modules/users/models/user.model';
 import { CoachMessage } from '../models/coach-message.model';
 import { CoachAgentService } from './coach-agent.service';
 
 const RECOVERY_SWEEP_MS = 60_000;
 const BOOT_RECOVERY_DELAY_MS = 3_000;
-const HISTORY_LIMIT = 6;
 
 /**
  * DB-first queue with per-user debounce.
@@ -140,13 +138,19 @@ export class MessageQueueService implements OnApplicationBootstrap, OnModuleDest
       return;
     }
 
-    const history = await this.loadHistory(userId);
-    const batchText = unprocessed.map((m) => m.content).join('\n\n');
-    history.push({ role: 'user', content: batchText });
+    // Mark the debounced user messages as processed BEFORE the LLM
+    // call — they already live in CoachMessages and will be picked up
+    // as the tail of the Active Buffer by ContextService.composeContext.
+    // `processedAt` only gates the debounce queue; it is independent
+    // of `summaryStatus` which gates the memory-fold pipeline.
+    await this.messageModel.update(
+      { processedAt: now },
+      { where: { id: { [Op.in]: unprocessed.map((m) => m.id) } } },
+    );
 
     let reply: string;
     try {
-      const result = await this.agent.run({ userId, history });
+      const result = await this.agent.run({ userId });
       reply = result.text?.trim() || this.i18n.t('coach.error', user.language);
     } catch (err) {
       this.logger.error(
@@ -163,41 +167,10 @@ export class MessageQueueService implements OnApplicationBootstrap, OnModuleDest
       userId,
       role: 'assistant',
       content: reply,
+      processedAt: new Date(),
     } as Partial<CoachMessage>);
 
-    await this.messageModel.update(
-      { processedAt: now },
-      {
-        where: {
-          id: { [Op.in]: unprocessed.map((m) => m.id) },
-        },
-      },
-    );
-
     await this.bot.sendToChat(Number(user.chatId), reply);
-  }
-
-  private async loadHistory(userId: number): Promise<LlmMessage[]> {
-    // Keep only the last N verbatim messages. Long tails of past
-    // assistant replies become self-reinforcing patterns the model
-    // imitates ("I dumped the program list before, so I should do it
-    // again"). The rolling summary captures context older than this
-    // window, so we aren't losing information — just precedent noise.
-    const rows = await this.messageModel.findAll({
-      where: {
-        userId,
-        processedAt: { [Op.not]: null },
-        summarizedAt: null,
-      },
-      order: [['createdAt', 'DESC']],
-      limit: HISTORY_LIMIT,
-    });
-    rows.reverse();
-    return rows.map((row) =>
-      row.role === 'assistant'
-        ? { role: 'assistant', content: row.content }
-        : { role: 'user', content: row.content },
-    );
   }
 
   private async recoverOrphans(): Promise<void> {

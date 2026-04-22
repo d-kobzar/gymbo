@@ -12,11 +12,17 @@ import { User } from '@modules/users/models/user.model';
 import { MeasurementEvents } from '@modules/measurements/events/measurement.events';
 import { ProgramEvents } from '@modules/programs/events/program.events';
 import { TrainingLogEvents } from '@modules/training-logs/events/training-log.events';
+import type { LlmMessage } from '@modules/llm/llm-provider.interface';
+import {
+  countMessagesTokens,
+  countTextTokens,
+} from '@shared/utils/token-counter';
 import {
   CoachContext,
   CoachDecision,
   CoachProfile,
 } from '../models/coach-context.model';
+import { CoachMessage } from '../models/coach-message.model';
 
 const DECISIONS_CAP = 20;
 const SUMMARY_REGEN_THRESHOLD = 10;
@@ -41,22 +47,26 @@ export const COACH_CONTEXT_INVALIDATE_EVENT = 'coach-context.invalidate';
 export const COACH_CONTEXT_SUMMARY_REQUESTED = 'coach-context.summary-requested';
 
 /**
- * Owns the managed memory layer on top of OpenAI threads.
+ * Owns the hybrid rolling-window memory for the coach.
  *
- * `buildRunInstructions` composes the block injected into every Run's
- * `additional_instructions`:
- *   - User profile (goal, level, equipment, injuries, sex, age,
- *     height, weight, health notes) — from CoachContext.profile
- *     which onboarding writes.
- *   - Live state — sets this week, bodyweight + 7d trend,
- *     top-5 PRs.
- *   - Current program — name + per-day one-liner.
- *   - Last 3 training sessions — date + exercises + totals.
- *   - Rolling summary — compressed narrative.
- *   - Recent decisions — last 10 by time.
+ * Two persisted layers: `entityMap` (structured facts) and
+ * `rollingSummary` (textual narrative), both updated by the
+ * background memory worker from the Active Buffer — messages with
+ * summaryStatus='none'.
  *
- * Subscribes to TrainingLog / Measurement / Program events so
- * summary staleness flips the moment the athlete logs anything.
+ * The public surface:
+ *   - composeContext(userId): returns { instructions, messages } —
+ *     the full payload the agent hands to LlmProvider.
+ *   - countBufferTokens(userId): drives the token-based summarizer
+ *     trigger.
+ *   - applyMemoryUpdate(userId, entityMap, summary, ids): atomic
+ *     write of both memory layers + flipping processed messages.
+ *   - loadActiveBuffer(userId): raw verbatim messages pending fold.
+ *
+ * Subscribes to TrainingLog / Measurement / Program events so the
+ * stale flag flips the moment the athlete logs anything, and wipes
+ * the running summary when the program changes so old structural
+ * references can't seep forward through paraphrase.
  */
 @Injectable()
 export class CoachContextService {
@@ -71,6 +81,8 @@ export class CoachContextService {
     private readonly measurementModel: typeof BodyMeasurement,
     @InjectModel(Program) private readonly programModel: typeof Program,
     @InjectModel(User) private readonly userModel: typeof User,
+    @InjectModel(CoachMessage)
+    private readonly messageModel: typeof CoachMessage,
   ) {}
 
   async getOrCreate(userId: number): Promise<CoachContext> {
@@ -133,11 +145,219 @@ export class CoachContextService {
     };
   }
 
+  /**
+   * Atomically persist both halves of the memory layer — structured
+   * entityMap and textual running summary — and mark the processed
+   * messages as folded in. Called by the background memory worker
+   * after it rewrites the narrative. The ids array is the subset of
+   * the Active Buffer that was actually summarized (typically all
+   * but the last 3, to preserve the current conversation thread).
+   */
+  async applyMemoryUpdate(
+    userId: number,
+    entityMap: Record<string, unknown>,
+    summary: string,
+    processedMessageIds: number[],
+  ): Promise<void> {
+    const sequelize = this.messageModel.sequelize;
+    if (!sequelize) throw new Error('Sequelize instance not available');
+
+    await sequelize.transaction(async (t) => {
+      await this.contextModel.update(
+        {
+          entityMap,
+          rollingSummary: summary,
+          messagesSinceSummary: 0,
+          summaryStale: false,
+        },
+        { where: { userId }, transaction: t },
+      );
+      if (processedMessageIds.length > 0) {
+        await this.messageModel.update(
+          { summaryStatus: 'processed', summarizedAt: new Date() },
+          {
+            where: {
+              id: { [Op.in]: processedMessageIds },
+              summaryStatus: 'none',
+            },
+            transaction: t,
+          },
+        );
+      }
+    });
+  }
+
+  /** Backwards-compat shim used by `RollingSummaryService.refresh()`. */
   async applyRegeneratedSummary(userId: number, summary: string): Promise<void> {
     await this.contextModel.update(
       { rollingSummary: summary, messagesSinceSummary: 0, summaryStale: false },
       { where: { userId } },
     );
+  }
+
+  /**
+   * Active Buffer — raw, chronologically-ordered user and assistant
+   * messages that have not yet been folded into the running summary.
+   * This is the conversation the coach actually sees each turn.
+   */
+  async loadActiveBuffer(userId: number): Promise<CoachMessage[]> {
+    return this.messageModel.findAll({
+      where: { userId, summaryStatus: 'none' },
+      order: [['createdAt', 'ASC']],
+    });
+  }
+
+  /** Token count for the Active Buffer — drives the summarizer
+   * trigger (fires when the buffer crosses the configured threshold). */
+  async countBufferTokens(userId: number): Promise<number> {
+    const buffer = await this.loadActiveBuffer(userId);
+    return countMessagesTokens(
+      buffer.map((m) => ({ role: m.role, content: m.content })),
+    );
+  }
+
+  /**
+   * Compose the full request payload for an LLM turn. Returns both
+   * halves the agent needs to call the provider:
+   *
+   *   - `instructions`: static system prompt (ASSISTANT_INSTRUCTIONS)
+   *     + stable ground-truth block (Context moment, profile, health,
+   *     live metrics, latest body snapshot, current program, last 3
+   *     sessions) + current entityMap JSON. Prompt-cache friendly:
+   *     the static prefix changes only when athlete facts change.
+   *
+   *   - `messages`: an optional pseudo-assistant turn carrying the
+   *     running summary, followed by the Active Buffer in
+   *     chronological order. The caller does NOT append the "current
+   *     user message" — it is already in the buffer (MessageQueue
+   *     writes it before invoking the agent).
+   */
+  async composeContext(userId: number): Promise<{
+    instructions: string;
+    messages: LlmMessage[];
+  }> {
+    const ctx = await this.getOrCreate(userId);
+    const [staticContext, buffer] = await Promise.all([
+      this.buildStaticContextBlock(userId, ctx),
+      this.loadActiveBuffer(userId),
+    ]);
+
+    const entityMap = ctx.entityMap ?? {};
+    const entityMapJson = JSON.stringify(entityMap, null, 2);
+
+    const instructions = [
+      staticContext,
+      '',
+      '### ENTITY MAP — structured facts the memory worker keeps fresh.',
+      '### Read it; do NOT echo it back to the athlete.',
+      entityMapJson,
+    ].join('\n');
+
+    const messages: LlmMessage[] = [];
+    const summary = ctx.rollingSummary?.trim();
+    if (summary) {
+      messages.push({
+        role: 'assistant',
+        content: `Memory recap (prior conversations — for your reference, do not quote back): ${summary}`,
+      });
+    }
+    for (const row of buffer) {
+      messages.push(
+        row.role === 'assistant'
+          ? { role: 'assistant', content: row.content }
+          : { role: 'user', content: row.content },
+      );
+    }
+
+    return { instructions, messages };
+  }
+
+  /** Token-count-only variant for the trigger decision — avoids a
+   * full LLM round-trip just to decide whether to fire a summary. */
+  async approxRequestTokens(userId: number): Promise<number> {
+    const { instructions, messages } = await this.composeContext(userId);
+    return (
+      countTextTokens(instructions) +
+      countMessagesTokens(
+        messages.map((m) => ({
+          role: m.role,
+          content:
+            m.role === 'tool'
+              ? m.output
+              : (m as { content: string }).content,
+        })),
+      )
+    );
+  }
+
+  /** Generate only the stable ground-truth block (no entityMap,
+   * no instructions, no summary) — shared by composeContext and the
+   * memory-update prompt. */
+  async buildStaticContextBlock(
+    userId: number,
+    ctxMaybe?: CoachContext,
+  ): Promise<string> {
+    const ctx = ctxMaybe ?? (await this.getOrCreate(userId));
+    const [user, aggregates, topPrs, program, lastSessions, latestBody] =
+      await Promise.all([
+        this.userModel.findByPk(userId, {
+          attributes: ['timezone', 'language'],
+        }),
+        this.liveAggregates(userId),
+        this.topPrs(userId, 5),
+        this.currentProgram(userId),
+        this.lastSessions(userId, LAST_SESSIONS),
+        this.latestMeasurement(userId),
+      ]);
+
+    const tz = user?.timezone || 'UTC';
+    const moment = this.formatContextMoment(tz);
+    const todayDow = moment.dowKey;
+    const profile = ctx.profile ?? {};
+
+    const profileLines = this.formatProfile(profile);
+    const healthLines = this.formatHealth(profile);
+    const stateLines = this.formatState(aggregates);
+    const prLines = topPrs.length
+      ? topPrs.map((p) => `  - ${p.name}: ${p.weight}×${p.reps}`).join('\n')
+      : '  - (no logs yet)';
+    const programLines = this.formatProgram(program, todayDow);
+    const sessionsLines = this.formatLastSessions(lastSessions);
+    const measurementLines = this.formatLatestMeasurement(latestBody);
+
+    return [
+      '### CONTEXT MOMENT',
+      `- Local date: ${moment.date} (${moment.dowLabel})`,
+      `- Local time: ${moment.time} (${moment.partOfDay})`,
+      `- Timezone: ${tz}`,
+      '',
+      '### GROUND TRUTH — reference data only, pulled fresh every turn.',
+      '### This block is NOT a template for your reply. Do not quote from it,',
+      '### do not dump exercise lists, do not recap what the athlete already knows.',
+      '### Use it to answer the question that was actually asked. If the latest',
+      '### user message contradicts anything here, accept the user and update',
+      '### your stance — do not repeat what you see here.',
+      '',
+      '## Athlete profile',
+      ...profileLines,
+      '',
+      '## Health & constraints',
+      ...healthLines,
+      '',
+      '## Live metrics',
+      ...stateLines,
+      '- Top PRs:',
+      prLines,
+      '',
+      '## Latest body snapshot',
+      ...measurementLines,
+      '',
+      '## Current program',
+      ...programLines,
+      '',
+      `## Last ${LAST_SESSIONS} sessions (most recent first)`,
+      ...sessionsLines,
+    ].join('\n');
   }
 
   /** Compact live-state snapshot for the summarizer. We hand the
@@ -180,93 +400,6 @@ export class CoachContextService {
       `- Latest body snapshot: ${bodyLine}`,
       `- Injuries: ${injuries}`,
       `- Health notes: ${healthNotes}`,
-    ].join('\n');
-  }
-
-  async buildRunInstructions(userId: number): Promise<string> {
-    const ctx = await this.getOrCreate(userId);
-    const [user, aggregates, topPrs, program, lastSessions, latestBody] =
-      await Promise.all([
-        this.userModel.findByPk(userId, { attributes: ['timezone', 'language'] }),
-        this.liveAggregates(userId),
-        this.topPrs(userId, 5),
-        this.currentProgram(userId),
-        this.lastSessions(userId, LAST_SESSIONS),
-        this.latestMeasurement(userId),
-      ]);
-
-    const tz = user?.timezone || 'UTC';
-    const moment = this.formatContextMoment(tz);
-    const todayDow = moment.dowKey;
-    const profile = ctx.profile ?? {};
-
-    const profileLines = this.formatProfile(profile);
-    const healthLines = this.formatHealth(profile);
-    const stateLines = this.formatState(aggregates);
-    const prLines = topPrs.length
-      ? topPrs.map((p) => `  - ${p.name}: ${p.weight}×${p.reps}`).join('\n')
-      : '  - (no logs yet)';
-
-    const programLines = this.formatProgram(program, todayDow);
-    const todayPlanLine = this.formatTodaysPlan(program, todayDow);
-    const sessionsLines = this.formatLastSessions(lastSessions);
-    const measurementLines = this.formatLatestMeasurement(latestBody);
-
-    const summary = ctx.rollingSummary?.trim() ?? '';
-    const decisions = ctx.recentDecisions ?? [];
-    const decisionLines = decisions.length
-      ? decisions
-          .slice(-10)
-          .map((d) => `  - ${d.at.slice(0, 10)} — ${d.topic}: ${d.decision}`)
-          .join('\n')
-      : '  - (none)';
-
-    return [
-      '### CONTEXT MOMENT',
-      `- Local date: ${moment.date} (${moment.dowLabel})`,
-      `- Local time: ${moment.time} (${moment.partOfDay})`,
-      `- Timezone: ${tz}`,
-      // The "today's workout" day is already marked with "← today" in
-      // the Current program block below. Printing the exercise list
-      // inline here turned out to be a strong trigger for the model
-      // to restate it in every reply — removed on purpose.
-      '',
-      '### GROUND TRUTH — reference data only, pulled fresh every turn.',
-      '### This block is NOT a template for your reply. Do not quote from it,',
-      '### do not dump exercise lists, do not recap what the athlete already knows.',
-      '### Use it to answer the question that was actually asked. If the latest',
-      '### user message contradicts anything here (e.g. "already trained today"),',
-      '### accept the user and update your stance — do not repeat what you see here.',
-      '',
-      '## Athlete profile',
-      ...profileLines,
-      '',
-      '## Health & constraints',
-      ...healthLines,
-      '',
-      '## Live metrics',
-      ...stateLines,
-      '- Top PRs:',
-      prLines,
-      '',
-      '## Latest body snapshot',
-      ...measurementLines,
-      '',
-      '## Current program',
-      ...programLines,
-      '',
-      `## Last ${LAST_SESSIONS} sessions (most recent first)`,
-      ...sessionsLines,
-      '',
-      '### HISTORICAL NARRATIVE — compressed memory of past conversations.',
-      '### May be out of date. If it references a different program, PRs, or body stats',
-      '### than the GROUND TRUTH above, trust the ground truth.',
-      '',
-      '## Rolling summary',
-      summary || '(empty — this is one of the first sessions)',
-      '',
-      '## Recent decisions',
-      decisionLines,
     ].join('\n');
   }
 

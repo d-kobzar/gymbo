@@ -58,6 +58,13 @@ export class CoachContext extends Model {
   @Column({ type: DataType.TEXT, allowNull: true })
   rollingSummary!: string | null;
 
+  /** Structured facts layer. Paired with the free-text rollingSummary
+   * by the memory-update worker — keys are flexible, common ones
+   * include recentInjuries, trainingGoal, dietPhase, motivationState,
+   * ongoingDecisions, timeConstraints. Free-form JSON on purpose. */
+  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: {} })
+  entityMap!: Record<string, unknown>;
+
   @Column({ type: DataType.JSONB, allowNull: false, defaultValue: [] })
   recentDecisions!: CoachDecision[];
 

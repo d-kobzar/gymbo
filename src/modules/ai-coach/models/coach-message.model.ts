@@ -9,6 +9,7 @@ import {
 import { User } from '@modules/users/models/user.model';
 
 export type CoachMessageRole = 'user' | 'assistant';
+export type CoachMessageSummaryStatus = 'none' | 'processed';
 
 /**
  * One persisted turn of the coach conversation. Written BEFORE the
@@ -42,4 +43,14 @@ export class CoachMessage extends Model {
 
   @Column({ type: DataType.DATE, allowNull: true })
   summarizedAt!: Date | null;
+
+  /** Coarser flag mirrored by `summarizedAt` — makes the Active
+   * Buffer query (`WHERE summaryStatus = 'none'`) both readable
+   * and index-friendly. */
+  @Column({
+    type: DataType.ENUM('none', 'processed'),
+    allowNull: false,
+    defaultValue: 'none',
+  })
+  summaryStatus!: CoachMessageSummaryStatus;
 }
