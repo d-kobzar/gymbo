@@ -15,6 +15,21 @@ import { ToolExecutorService } from './tool-executor.service';
 
 const MAX_TOOL_ROUNDS = 5;
 
+/** Pinned to the very end of the instructions string — gpt-4o
+ * weights trailing content more heavily than preamble, and the
+ * top-of-prompt rules ("no restate", "scope = scope") were being
+ * overridden by the model's own past assistant replies. This is
+ * the non-negotiable checklist applied immediately before writing
+ * the reply. */
+const FINAL_DIRECTIVE = `### FINAL CHECK — apply before writing the reply
+
+1. Identify the ONE exact question in the athlete's latest message.
+   - No question mark and no explicit request → it is a state report. Reply in max 2 short sentences. Do NOT prescribe, do NOT list exercises, do NOT recite rest intervals / RIR / set-rep ranges.
+2. Do NOT print today's exercise list unless the latest message literally asks "what is today's plan?".
+3. Do NOT repeat any exercise list, rest-interval guide, RIR target, or warm-up protocol that already appeared in any of your previous assistant turns visible above. The athlete has it.
+4. If the athlete called out that you repeated yourself, acknowledge in one sentence and STOP. Do not issue more content after the acknowledgement.
+5. Scope of the reply = scope of the question. Not the weekly split. Not the full program. Not a protocol dump.`;
+
 export interface CoachAgentRequest {
   userId: number;
   history: LlmMessage[];
@@ -65,10 +80,10 @@ export class CoachAgentService {
         messages,
         tools,
         maxOutputTokens: this.maxOutputTokens,
-        // Lower temperature so the model follows the strict scope /
+        // Low temperature so the model follows strict scope /
         // no-restate / no-dump rules instead of "being creative".
-        // Default (1.0) consistently ignored them.
-        temperature: 0.4,
+        // 0.4 still produced dumps; 0.2 lands directive-followy.
+        temperature: 0.2,
       });
 
       const hasToolCalls = response.toolCalls.length > 0;
@@ -108,7 +123,8 @@ export class CoachAgentService {
       this.logger.warn(`buildRunInstructions failed: ${err.message}`);
       return '';
     });
-    return context ? `${ASSISTANT_INSTRUCTIONS}\n\n${context}` : ASSISTANT_INSTRUCTIONS;
+    const body = context ? `${ASSISTANT_INSTRUCTIONS}\n\n${context}` : ASSISTANT_INSTRUCTIONS;
+    return `${body}\n\n${FINAL_DIRECTIVE}`;
   }
 
   private async executeCall(call: LlmToolCall, userId: number): Promise<string> {

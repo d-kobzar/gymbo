@@ -19,6 +19,7 @@ import { CoachAgentService } from './coach-agent.service';
 
 const RECOVERY_SWEEP_MS = 60_000;
 const BOOT_RECOVERY_DELAY_MS = 3_000;
+const HISTORY_LIMIT = 6;
 
 /**
  * DB-first queue with per-user debounce.
@@ -177,14 +178,21 @@ export class MessageQueueService implements OnApplicationBootstrap, OnModuleDest
   }
 
   private async loadHistory(userId: number): Promise<LlmMessage[]> {
+    // Keep only the last N verbatim messages. Long tails of past
+    // assistant replies become self-reinforcing patterns the model
+    // imitates ("I dumped the program list before, so I should do it
+    // again"). The rolling summary captures context older than this
+    // window, so we aren't losing information — just precedent noise.
     const rows = await this.messageModel.findAll({
       where: {
         userId,
         processedAt: { [Op.not]: null },
         summarizedAt: null,
       },
-      order: [['createdAt', 'ASC']],
+      order: [['createdAt', 'DESC']],
+      limit: HISTORY_LIMIT,
     });
+    rows.reverse();
     return rows.map((row) =>
       row.role === 'assistant'
         ? { role: 'assistant', content: row.content }
