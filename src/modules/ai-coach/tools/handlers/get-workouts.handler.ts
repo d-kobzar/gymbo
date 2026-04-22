@@ -7,6 +7,8 @@ import type { CoachTool } from '../coach-tool.interface';
 
 export interface GetWorkoutsParams {
   date?: string;
+  since?: string;
+  until?: string;
   exerciseName?: string;
   limit?: number;
 }
@@ -16,13 +18,32 @@ export class GetWorkoutsHandler implements CoachTool<GetWorkoutsParams, Training
   readonly name = 'get_workouts';
   readonly definition = {
     name: this.name,
-    description: 'Get recent workout logs. Optionally filter by date or exercise name.',
+    description:
+      'Fetch workout logs over a date range. Use this when the athlete asks about a specific past session or a period (this week, last month, a specific weekday). Combine `since` and `until` for a range; use `date` for a single day. If no filter is passed, returns the last 20 sets across all time.',
     parameters: {
       type: 'object' as const,
       properties: {
-        date: { type: 'string', description: 'Filter by date (YYYY-MM-DD)' },
-        exerciseName: { type: 'string', description: 'Filter by exercise name' },
-        limit: { type: 'number', description: 'Max records (default 20)' },
+        date: {
+          type: 'string',
+          description: 'Single calendar day (YYYY-MM-DD).',
+        },
+        since: {
+          type: 'string',
+          description:
+            'Lower bound, inclusive (YYYY-MM-DD). Use with `until` for a range, or alone for "from X onwards".',
+        },
+        until: {
+          type: 'string',
+          description: 'Upper bound, inclusive (YYYY-MM-DD).',
+        },
+        exerciseName: {
+          type: 'string',
+          description: 'Filter by exercise name (case-insensitive substring match).',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max records returned (default 100). Raise when pulling a full week / month.',
+        },
       },
     },
   };
@@ -34,7 +55,15 @@ export class GetWorkoutsHandler implements CoachTool<GetWorkoutsParams, Training
 
   async execute(params: GetWorkoutsParams, userId: number): Promise<TrainingLog[]> {
     const where: WhereOptions<TrainingLog> = { userId };
-    if (params.date) where.date = params.date;
+
+    if (params.date) {
+      where.date = params.date;
+    } else if (params.since || params.until) {
+      const range: Record<symbol, string> = {};
+      if (params.since) range[Op.gte] = params.since;
+      if (params.until) range[Op.lte] = params.until;
+      (where as Record<string, unknown>).date = range;
+    }
 
     if (params.exerciseName) {
       const ex = await this.exerciseModel.findOne({
@@ -50,7 +79,7 @@ export class GetWorkoutsHandler implements CoachTool<GetWorkoutsParams, Training
         ['date', 'DESC'],
         ['setNumber', 'ASC'],
       ],
-      limit: params.limit ?? 20,
+      limit: params.limit ?? 100,
     });
   }
 }

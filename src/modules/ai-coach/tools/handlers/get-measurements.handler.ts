@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+import { Op, WhereOptions } from 'sequelize';
 import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
 import type { CoachTool } from '../coach-tool.interface';
 
@@ -18,6 +19,8 @@ const METRICS = [
 
 export interface GetMeasurementsParams {
   metric?: (typeof METRICS)[number];
+  since?: string;
+  until?: string;
   limit?: number;
 }
 
@@ -28,15 +31,29 @@ export class GetMeasurementsHandler
   readonly name = 'get_measurements';
   readonly definition = {
     name: this.name,
-    description: 'Get body measurements history, optionally filtered by metric.',
+    description:
+      'Fetch body-measurement entries over a date range. Use this when the athlete asks about bodyweight / circumferences this week, last month, or a specific past entry. Combine `since` + `until` for a range; filter by `metric` to pull a single field.',
     parameters: {
       type: 'object' as const,
       properties: {
         metric: {
           type: 'string',
           enum: METRICS as unknown as string[],
+          description:
+            'Single metric to extract (weight / shoulders / neck / arm / chest / waist / abs / glutes / thigh / calf). Omit to return all fields per row.',
         },
-        limit: { type: 'number', description: 'Max records (default 10)' },
+        since: {
+          type: 'string',
+          description: 'Lower bound, inclusive (YYYY-MM-DD).',
+        },
+        until: {
+          type: 'string',
+          description: 'Upper bound, inclusive (YYYY-MM-DD).',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max records returned (default 30).',
+        },
       },
     },
   };
@@ -49,10 +66,17 @@ export class GetMeasurementsHandler
     params: GetMeasurementsParams,
     userId: number,
   ): Promise<BodyMeasurement[]> {
+    const where: WhereOptions<BodyMeasurement> = { userId };
+    if (params.since || params.until) {
+      const range: Record<symbol, string> = {};
+      if (params.since) range[Op.gte] = params.since;
+      if (params.until) range[Op.lte] = params.until;
+      (where as Record<string, unknown>).date = range;
+    }
     return this.measurementModel.findAll({
-      where: { userId },
+      where,
       order: [['date', 'DESC']],
-      limit: params.limit ?? 10,
+      limit: params.limit ?? 30,
     });
   }
 }
