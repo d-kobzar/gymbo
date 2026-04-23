@@ -23,9 +23,9 @@
     placeholders for the URL and the token.
 
   The stub below is a valid minimal shortcut that performs a single
-  POST ping to the ingest URL with "Authorization: Bearer <token>"
-  and shows a notification. Enough to verify the install pipeline
-  before the dev replaces it with the real HealthKit-heavy version.
+  POST ping to the ingest URL with "X-API-Key: <token>" and shows a
+  notification. Enough to verify the install pipeline before the
+  dev replaces it with the real HealthKit-heavy version.
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -95,7 +95,7 @@
                                     <key>Value</key>
                                     <dict>
                                         <key>string</key>
-                                        <string>Authorization</string>
+                                        <string>X-API-Key</string>
                                     </dict>
                                     <key>WFSerializationType</key>
                                     <string>WFTextTokenString</string>
@@ -105,7 +105,7 @@
                                     <key>Value</key>
                                     <dict>
                                         <key>string</key>
-                                        <string>Bearer __TOKEN__</string>
+                                        <string>__TOKEN__</string>
                                     </dict>
                                     <key>WFSerializationType</key>
                                     <string>WFTextTokenString</string>
