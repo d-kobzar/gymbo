@@ -9,6 +9,7 @@ import {
 import { ActivitySample } from '../models/activity-sample.model';
 import { HealthSample } from '../models/health-sample.model';
 import { SyncConnection } from '../models/sync-connection.model';
+import { SyncLog, type SyncLogStatus } from '../models/sync-log.model';
 
 const PROVIDER = 'apple_health' as const;
 
@@ -32,7 +33,38 @@ export class AppleHealthService {
     private readonly sampleModel: typeof HealthSample,
     @InjectModel(ActivitySample)
     private readonly activityModel: typeof ActivitySample,
+    @InjectModel(SyncLog)
+    private readonly syncLogModel: typeof SyncLog,
   ) {}
+
+  /** Persist an audit row for every ingest attempt (success or fail)
+   * so we can debug missing syncs after Heroku log retention expires. */
+  async recordLog(entry: {
+    userId: number | null;
+    status: SyncLogStatus;
+    payloadBytes?: number | null;
+    counts?: Readonly<Record<string, number>>;
+    durationMs?: number | null;
+    error?: string | null;
+    ip?: string | null;
+  }): Promise<void> {
+    try {
+      await this.syncLogModel.create({
+        userId: entry.userId ?? null,
+        provider: PROVIDER,
+        status: entry.status,
+        payloadBytes: entry.payloadBytes ?? null,
+        counts: { ...(entry.counts ?? {}) },
+        durationMs: entry.durationMs ?? null,
+        error: entry.error ?? null,
+        ip: entry.ip ?? null,
+      } as Partial<SyncLog>);
+    } catch (err) {
+      this.logger.warn(
+        `failed to persist SyncLog: ${(err as Error).message}`,
+      );
+    }
+  }
 
   /** Idempotent: re-calling returns the existing token. Revoke +
    * reconnect is how the athlete rotates the token. */

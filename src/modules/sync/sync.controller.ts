@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   NotFoundException,
   Post,
   Query,
@@ -36,6 +37,8 @@ import { ShortcutBuilderService } from './services/shortcut-builder.service';
  */
 @Controller('sync')
 export class SyncController {
+  private readonly logger = new Logger(SyncController.name);
+
   constructor(
     private readonly appleHealth: AppleHealthService,
     private readonly config: ConfigService,
@@ -83,8 +86,44 @@ export class SyncController {
   ) {
     const ctx = req[SYNC_USER_KEY];
     if (!ctx) return { ok: false };
-    const counts = await this.appleHealth.ingest(ctx.userId, dto);
-    return { ok: true, counts };
+    const startedAt = Date.now();
+    const ip = clientIp(req);
+    const payloadBytes = rawBytes(req);
+    try {
+      const counts = await this.appleHealth.ingest(ctx.userId, dto);
+      const durationMs = Date.now() - startedAt;
+      this.logger.log(
+        `apple-health ingest ok userId=${ctx.userId} ip=${ip ?? '?'} ` +
+          `bytes=${payloadBytes ?? '?'} ms=${durationMs} ` +
+          Object.entries(counts)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(' '),
+      );
+      await this.appleHealth.recordLog({
+        userId: ctx.userId,
+        status: 'ok',
+        payloadBytes,
+        counts: counts as unknown as Record<string, number>,
+        durationMs,
+        ip,
+      });
+      return { ok: true, counts };
+    } catch (err) {
+      const durationMs = Date.now() - startedAt;
+      const message = (err as Error).message;
+      this.logger.error(
+        `apple-health ingest error userId=${ctx.userId} ip=${ip ?? '?'} ms=${durationMs}: ${message}`,
+      );
+      await this.appleHealth.recordLog({
+        userId: ctx.userId,
+        status: 'error',
+        payloadBytes,
+        durationMs,
+        error: message.slice(0, 500),
+        ip,
+      });
+      throw err;
+    }
   }
 
   /**
@@ -190,4 +229,18 @@ export class SyncController {
       .setHeader('Cache-Control', 'no-store')
       .send(body);
   }
+}
+
+function clientIp(req: Request): string | null {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string') return forwarded.split(',')[0]?.trim() || null;
+  if (Array.isArray(forwarded)) return forwarded[0] ?? null;
+  return req.ip ?? null;
+}
+
+function rawBytes(req: Request): number | null {
+  const len = req.headers['content-length'];
+  if (typeof len !== 'string') return null;
+  const n = Number(len);
+  return Number.isFinite(n) ? n : null;
 }
