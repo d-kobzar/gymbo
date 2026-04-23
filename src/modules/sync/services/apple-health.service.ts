@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { randomBytes } from 'crypto';
 import {
+  AppleHealthIngestData,
   AppleHealthIngestDto,
   HealthSampleDto,
 } from '../dto/apple-health-ingest.dto';
@@ -88,6 +89,7 @@ export class AppleHealthService {
     userId: number,
     dto: AppleHealthIngestDto,
   ): Promise<IngestCounts> {
+    const data = dto.data;
     const counts: IngestCounts = {
       sleep: 0,
       restingHr: 0,
@@ -97,35 +99,35 @@ export class AppleHealthService {
       workouts: 0,
     };
 
-    if (dto.sleep?.length) {
+    if (data.sleep?.length) {
       counts.sleep = await this.upsertSamples(
         userId,
         'sleep_duration',
-        dto.sleep,
+        data.sleep,
       );
     }
-    if (dto.restingHr?.length) {
+    if (data.restingHr?.length) {
       counts.restingHr = await this.upsertSamples(
         userId,
         'resting_hr',
-        dto.restingHr,
+        data.restingHr,
       );
     }
-    if (dto.hrv?.length) {
-      counts.hrv = await this.upsertSamples(userId, 'hrv_sdnn', dto.hrv);
+    if (data.hrv?.length) {
+      counts.hrv = await this.upsertSamples(userId, 'hrv_sdnn', data.hrv);
     }
-    if (dto.activeEnergy?.length) {
+    if (data.activeEnergy?.length) {
       counts.activeEnergy = await this.upsertSamples(
         userId,
         'active_energy',
-        dto.activeEnergy,
+        data.activeEnergy,
       );
     }
-    if (dto.steps?.length) {
-      counts.steps = await this.upsertSamples(userId, 'steps', dto.steps);
+    if (data.steps?.length) {
+      counts.steps = await this.upsertSamples(userId, 'steps', data.steps);
     }
-    if (dto.workouts?.length) {
-      counts.workouts = await this.upsertWorkouts(userId, dto.workouts);
+    if (data.workouts?.length) {
+      counts.workouts = await this.upsertWorkouts(userId, data.workouts);
     }
 
     await this.connectionModel.update(
@@ -172,7 +174,7 @@ export class AppleHealthService {
 
   private async upsertWorkouts(
     userId: number,
-    workouts: AppleHealthIngestDto['workouts'],
+    workouts: AppleHealthIngestData['workouts'],
   ): Promise<number> {
     if (!workouts) return 0;
     let count = 0;

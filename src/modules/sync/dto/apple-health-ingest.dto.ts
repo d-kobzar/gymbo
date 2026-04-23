@@ -2,7 +2,9 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
+  IsDefined,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   ValidateNested,
@@ -63,7 +65,10 @@ export class HealthWorkoutDto {
 }
 
 /**
- * Payload the iOS Shortcut POSTs to /api/sync/apple-health/ingest.
+ * Inner payload — the actual health arrays. Wrapped in an outer
+ * { data: ... } envelope (see AppleHealthIngestDto below) to
+ * stay consistent with the rest of our API surface.
+ *
  * All arrays optional — the Shortcut only includes metrics the
  * athlete approved via HealthKit permissions. Scalar metrics land
  * in HealthSamples, workouts in ActivitySamples.
@@ -73,7 +78,7 @@ export class HealthWorkoutDto {
  * pulling again from Apple would cause dupe rows and last-writer-
  * wins races across the two entry paths.
  */
-export class AppleHealthIngestDto {
+export class AppleHealthIngestData {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -109,4 +114,16 @@ export class AppleHealthIngestDto {
   @ValidateNested({ each: true })
   @Type(() => HealthWorkoutDto)
   workouts?: HealthWorkoutDto[];
+}
+
+/**
+ * Envelope the iOS Shortcut POSTs to /api/sync/apple-health/ingest.
+ * Top-level shape: { data: { sleep: [...], steps: [...], ... } }.
+ */
+export class AppleHealthIngestDto {
+  @IsDefined()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AppleHealthIngestData)
+  data!: AppleHealthIngestData;
 }
