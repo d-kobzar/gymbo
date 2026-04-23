@@ -32,21 +32,34 @@ export class HealthWorkoutDto {
   @IsDateString()
   endDate?: string;
 
+  /** Seconds. */
   @IsOptional()
   @IsNumber()
   duration?: number;
 
+  /** HealthKit workout-activity type label (running, cycling,
+   * functional_strength, hiit, yoga, ...). */
   @IsOptional()
   @IsString()
   kind?: string;
 
+  /** Active energy burned, kilocalories. */
   @IsOptional()
   @IsNumber()
   energy?: number;
 
+  /** Covered distance, meters. */
+  @IsOptional()
+  @IsNumber()
+  distance?: number;
+
   @IsOptional()
   @IsNumber()
   avgHr?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxHr?: number;
 }
 
 /**

@@ -11,6 +11,7 @@ import {
   AppleHealthIngestDto,
   HealthSampleDto,
 } from '../dto/apple-health-ingest.dto';
+import { ActivitySample } from '../models/activity-sample.model';
 import { HealthSample } from '../models/health-sample.model';
 import { SyncConnection } from '../models/sync-connection.model';
 
@@ -35,6 +36,8 @@ export class AppleHealthService {
     private readonly connectionModel: typeof SyncConnection,
     @InjectModel(HealthSample)
     private readonly sampleModel: typeof HealthSample,
+    @InjectModel(ActivitySample)
+    private readonly activityModel: typeof ActivitySample,
     @InjectModel(BodyMeasurement)
     private readonly measurementModel: typeof BodyMeasurement,
     private readonly events: EventEmitter2,
@@ -219,23 +222,36 @@ export class AppleHealthService {
     for (const w of workouts) {
       const startDate = new Date(w.startDate);
       const endDate = w.endDate ? new Date(w.endDate) : null;
-      // External workouts (cardio, runs, cycling from Apple Watch)
-      // land in HealthSamples under the "workout_*" metric family
-      // so they don't collide with our strength TrainingLog.
-      const metric = `workout_${(w.kind ?? 'unknown').toLowerCase()}`;
-      const [, created] = await this.sampleModel.findOrCreate({
-        where: { userId, metric, startDate },
+      const kind = (w.kind ?? 'unknown').toLowerCase();
+      const [row, created] = await this.activityModel.findOrCreate({
+        where: { userId, kind, startDate },
         defaults: {
           userId,
-          metric,
+          kind,
           startDate,
           endDate,
-          value: w.duration ?? 0,
-          unit: 'seconds',
+          duration: w.duration ?? null,
+          energy: w.energy ?? null,
+          distance: w.distance ?? null,
+          avgHr: w.avgHr ?? null,
+          maxHr: w.maxHr ?? null,
           source: PROVIDER,
-        } as Partial<HealthSample>,
+        } as Partial<ActivitySample>,
       });
-      if (created) count += 1;
+      if (created) {
+        count += 1;
+      } else {
+        // Update in place — later re-syncs may carry richer data
+        // (Apple sometimes back-fills energy or HR minutes after the
+        // session ends).
+        row.endDate = endDate;
+        if (w.duration != null) row.duration = w.duration;
+        if (w.energy != null) row.energy = w.energy;
+        if (w.distance != null) row.distance = w.distance;
+        if (w.avgHr != null) row.avgHr = w.avgHr;
+        if (w.maxHr != null) row.maxHr = w.maxHr;
+        await row.save();
+      }
     }
     return count;
   }
