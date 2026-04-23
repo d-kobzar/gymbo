@@ -171,34 +171,26 @@ export class SyncAppleHealthPage extends Page {
       ),
     );
 
-    // Preferred install path: the bridge page on our server opens
-    // Safari and redirects to shortcuts:// — Telegram's WebView
-    // can't launch custom schemes, so we cannot use a direct
-    // shortcuts:// href here.
-    const installUrl = this.installShortcutUrl();
-    if (installUrl) {
-      const installBtn = Page.el('button', {
-        className: 'button button--primary button--lg button--block',
-        text: i18n.t('sync.apple_health.install_shortcut'),
-      });
-      installBtn.type = 'button';
-      this.on(installBtn, 'click', () => {
-        haptics.tap();
-        telegram.openLink(installUrl);
-      });
-      wrap.append(installBtn);
-    }
-
-    // Alternative: plain iCloud link if the dev published one.
+    // Install flow: iCloud-signed shortcut built once in
+    // Shortcuts.app by the admin, link stored in
+    // APPLE_HEALTHKIT_SHORTCUT_URL. Telegram's WebView blocks
+    // custom URL schemes, so even iCloud https links need to be
+    // opened via Telegram.WebApp.openLink which lands in Safari.
     if (this.shortcutUrl) {
-      const openBtn = Page.el('a', {
-        className: 'button button--secondary button--block',
+      const openBtn = Page.el('button', {
+        className: 'button button--primary button--lg button--block',
         text: i18n.t('sync.apple_health.open_shortcut'),
       });
-      openBtn.setAttribute('href', this.shortcutUrl);
-      openBtn.setAttribute('target', '_blank');
-      openBtn.setAttribute('rel', 'noopener');
+      openBtn.type = 'button';
+      this.on(openBtn, 'click', () => {
+        haptics.tap();
+        telegram.openLink(/** @type {string} */ (this.shortcutUrl));
+      });
       wrap.append(openBtn);
+    } else {
+      const note = Page.el('div', { className: 'sync-detail__note' });
+      note.textContent = i18n.t('sync.apple_health.shortcut_url_missing');
+      wrap.append(note);
     }
 
     const manual = Page.el('div', { className: 'sync-detail__manual' });
