@@ -180,13 +180,13 @@
       "endpoint_label": "URL эндпоинта",
       "last_sync": "Последняя синхронизация",
       "never_synced": "ещё не было",
-      "connected_toast": "Токен готов — вставь его в Shortcut.",
+      "connected_toast": "Подключено. Жми «Установить Shortcut», чтобы завершить на iPhone.",
       "disconnected_toast": "Apple Health отключён",
       "manual_title": "Как настроить",
-      "step1": "Открой ссылку на Shortcut ниже с iPhone и нажми 'Set Up Shortcut' в приложении Shortcuts.",
-      "step2": "Вставь токен (кнопкой выше скопируй в буфер) в поле Token.",
-      "step3": "Запусти Shortcut первый раз. iOS запросит доступ к HealthKit — разреши к весу, сну, пульсу и тренировкам.",
-      "step4": "Опционально настрой Automation (Shortcuts → Automation → Time of Day → 8:00 ежедневно), чтобы данные приходили сами.",
+      "step1": "Жми «Установить Shortcut (один тап)» выше. Telegram откроет Safari, Safari передаст в Shortcuts.app — токен уже внутри файла.",
+      "step2": "В Shortcuts.app нажми «Add Shortcut» на превью импорта.",
+      "step3": "Запусти Shortcut один раз, тапнув по нему. iOS запросит доступ к HealthKit — разреши к весу, сну, пульсу и тренировкам.",
+      "step4": "Опционально настрой автоматику (Shortcuts → Automation → Time of Day → 8:00 ежедневно → Run Shortcut → GymBo Sync), чтобы синк шёл фоном.",
       "step5": "Данные появляются в GymBo через секунды после синка. В любой момент можно отключить — токен перестанет работать."
     },
     "strava": {

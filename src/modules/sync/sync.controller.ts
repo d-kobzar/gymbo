@@ -88,6 +88,69 @@ export class SyncController {
   }
 
   /**
+   * Bridge page that kicks iOS into Shortcuts.app.
+   *
+   * Telegram Mini App WebView blocks custom URL schemes like
+   * shortcuts://, so a direct `<a href="shortcuts://…">` won't fire
+   * from inside the app. We hand the browser an HTTPS URL (this
+   * endpoint), Telegram's openLink() opens it in Safari, and Safari
+   * runs the JS redirect to the shortcuts:// scheme — which iOS
+   * happily routes to the Shortcuts import flow.
+   */
+  @Get('apple-health/install')
+  @Raw()
+  async appleHealthInstallBridge(
+    @Query('t') tokenQuery: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const token = (tokenQuery ?? '').trim();
+    if (!token) throw new UnauthorizedException('Missing token');
+    const connection = await this.connectionModel.findOne({
+      where: { token, revokedAt: null, provider: 'apple_health' },
+    });
+    if (!connection) throw new NotFoundException('Not available');
+
+    const appUrl =
+      this.config.get<string>('APP_URL') ?? `${req.protocol}://${req.get('host')}`;
+    const fileUrl = `${appUrl.replace(/\/+$/, '')}/api/sync/apple-health/shortcut?t=${encodeURIComponent(token)}`;
+    const shortcutsUri = `shortcuts://import-shortcut/?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent('GymBo Sync')}`;
+
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Install GymBo Sync</title>
+  <style>
+    html,body{margin:0;padding:0;background:#0B0B0E;color:#F5F6F7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;}
+    main{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:20px;text-align:center;}
+    h1{font-size:22px;font-weight:800;margin:0;}
+    p{margin:0;color:#9BA1A6;font-size:15px;line-height:1.45;max-width:360px;}
+    a.btn{display:inline-block;padding:14px 28px;background:#FFB020;color:#111;text-decoration:none;border-radius:14px;font-weight:800;font-size:15px;}
+    a.btn:active{opacity:0.8;}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Opening Shortcuts…</h1>
+  <p>If nothing happens automatically, tap the button below to install the GymBo Sync shortcut.</p>
+  <a class="btn" id="go" href="${shortcutsUri}">Open in Shortcuts</a>
+</main>
+<script>
+  location.replace(${JSON.stringify(shortcutsUri)});
+</script>
+</body>
+</html>`;
+
+    res
+      .status(200)
+      .setHeader('Content-Type', 'text/html; charset=utf-8')
+      .setHeader('Cache-Control', 'no-store')
+      .send(html);
+  }
+
+  /**
    * Serve the iOS Shortcut file with the user's token pre-baked in.
    *
    * Called by iOS itself via the `shortcuts://import-shortcut/?url=…`

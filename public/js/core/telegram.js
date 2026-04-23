@@ -125,6 +125,20 @@ class Telegram {
     this.webApp?.close();
   }
 
+  /** Open an https URL in the external browser (Safari on iOS).
+   * Telegram's WebView sandboxes the Mini App — direct `location`
+   * changes to non-HTTP schemes silently fail, and even HTTP links
+   * lose the Back button context. `openLink` pops to Safari and
+   * resolves those issues. Falls back to window.open for dev. */
+  openLink(url) {
+    if (!url) return;
+    if (this.webApp?.openLink) {
+      this.webApp.openLink(url);
+      return;
+    }
+    globalThis.open?.(url, '_blank', 'noopener,noreferrer');
+  }
+
   /** @param {HapticImpactStyle} style */
   hapticImpact(style = 'light') {
     this.webApp?.HapticFeedback?.impactOccurred(style);

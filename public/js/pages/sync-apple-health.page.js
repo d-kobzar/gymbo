@@ -4,6 +4,7 @@ import { toast } from '../components/toast.js';
 import { api, ApiError, NetworkError } from '../core/api.js';
 import { i18n } from '../core/i18n.js';
 import { haptics } from '../core/haptics.js';
+import { telegram } from '../core/telegram.js';
 
 const INGEST_PATH = '/api/sync/apple-health/ingest';
 
@@ -170,15 +171,21 @@ export class SyncAppleHealthPage extends Page {
       ),
     );
 
-    // Preferred install path: direct import via the URL scheme with
-    // the server-patched .shortcut file (token already baked in).
+    // Preferred install path: the bridge page on our server opens
+    // Safari and redirects to shortcuts:// — Telegram's WebView
+    // can't launch custom schemes, so we cannot use a direct
+    // shortcuts:// href here.
     const installUrl = this.installShortcutUrl();
     if (installUrl) {
-      const installBtn = Page.el('a', {
+      const installBtn = Page.el('button', {
         className: 'button button--primary button--lg button--block',
         text: i18n.t('sync.apple_health.install_shortcut'),
       });
-      installBtn.setAttribute('href', installUrl);
+      installBtn.type = 'button';
+      this.on(installBtn, 'click', () => {
+        haptics.tap();
+        telegram.openLink(installUrl);
+      });
       wrap.append(installBtn);
     }
 
@@ -236,12 +243,13 @@ export class SyncAppleHealthPage extends Page {
     return field;
   }
 
-  /** Build the shortcuts://import-shortcut URL that causes iOS to
-   * fetch our server-patched .shortcut and show the import dialog. */
+  /** HTTPS bridge URL on our server. Telegram's openLink launches
+   * this in Safari; Safari runs the embedded redirect to the
+   * shortcuts:// scheme. Custom schemes don't work directly from
+   * inside Telegram Mini Apps. */
   installShortcutUrl() {
     if (!this.token) return null;
-    const fileUrl = `${globalThis.location.origin}/api/sync/apple-health/shortcut?t=${encodeURIComponent(this.token)}`;
-    return `shortcuts://import-shortcut/?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent('GymBo Sync')}`;
+    return `${globalThis.location.origin}/api/sync/apple-health/install?t=${encodeURIComponent(this.token)}`;
   }
 
   renderDisconnectBtn() {

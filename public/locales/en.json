@@ -180,13 +180,13 @@
       "endpoint_label": "Ingest URL",
       "last_sync": "Last sync",
       "never_synced": "never",
-      "connected_toast": "Connection ready — paste the token into the Shortcut.",
+      "connected_toast": "Connected. Tap \"Install Shortcut\" to finish on iPhone.",
       "disconnected_toast": "Apple Health disconnected",
       "manual_title": "How to set up",
-      "step1": "Open the Shortcut link below on your iPhone and tap 'Set Up Shortcut' in the Shortcuts app.",
-      "step2": "Paste the connection token (copy it with the button above) into the Token field.",
-      "step3": "Run the Shortcut once. iOS will ask for HealthKit permissions — allow access to Body Mass, Sleep, Heart Rate and Workouts.",
-      "step4": "Optionally create an Automation (Shortcuts → Automation → Time of Day → 8:00 AM daily) to sync in the background.",
+      "step1": "Tap \"Install Shortcut (one tap)\" above. Telegram opens Safari, Safari hands off to Shortcuts.app — your token is already inside the file.",
+      "step2": "In Shortcuts.app tap \"Add Shortcut\" on the import preview.",
+      "step3": "Run the Shortcut once by tapping it. iOS will ask for HealthKit permissions — allow access to Body Mass, Sleep, Heart Rate and Workouts.",
+      "step4": "Optionally create an Automation (Shortcuts → Automation → Time of Day → 8:00 AM daily → Run Shortcut → GymBo Sync) to sync in the background.",
       "step5": "Data appears in GymBo within seconds of the sync. Disconnect anytime to revoke the token."
     },
     "strava": {
