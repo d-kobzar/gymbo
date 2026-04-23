@@ -1,12 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/sequelize';
 import { randomBytes } from 'crypto';
-import { BodyMeasurement } from '@modules/measurements/models/body-measurement.model';
-import {
-  MeasurementCreatedPayload,
-  MeasurementEvents,
-} from '@modules/measurements/events/measurement.events';
 import {
   AppleHealthIngestDto,
   HealthSampleDto,
@@ -18,7 +12,6 @@ import { SyncConnection } from '../models/sync-connection.model';
 const PROVIDER = 'apple_health' as const;
 
 export interface IngestCounts {
-  weights: number;
   sleep: number;
   restingHr: number;
   hrv: number;
@@ -38,9 +31,6 @@ export class AppleHealthService {
     private readonly sampleModel: typeof HealthSample,
     @InjectModel(ActivitySample)
     private readonly activityModel: typeof ActivitySample,
-    @InjectModel(BodyMeasurement)
-    private readonly measurementModel: typeof BodyMeasurement,
-    private readonly events: EventEmitter2,
   ) {}
 
   /** Idempotent: re-calling returns the existing token. Revoke +
@@ -99,7 +89,6 @@ export class AppleHealthService {
     dto: AppleHealthIngestDto,
   ): Promise<IngestCounts> {
     const counts: IngestCounts = {
-      weights: 0,
       sleep: 0,
       restingHr: 0,
       hrv: 0,
@@ -108,9 +97,6 @@ export class AppleHealthService {
       workouts: 0,
     };
 
-    if (dto.weights?.length) {
-      counts.weights = await this.upsertWeights(userId, dto.weights);
-    }
     if (dto.sleep?.length) {
       counts.sleep = await this.upsertSamples(
         userId,
@@ -156,35 +142,6 @@ export class AppleHealthService {
     );
 
     return counts;
-  }
-
-  private async upsertWeights(
-    userId: number,
-    samples: HealthSampleDto[],
-  ): Promise<number> {
-    let count = 0;
-    for (const s of samples) {
-      const date = new Date(s.startDate).toISOString().slice(0, 10);
-      // Day-level idempotency: one BodyMeasurement per day, Apple's
-      // sample beats nothing and is overwritten by a later sample on
-      // the same day (assume newer is truer).
-      const [row, created] = await this.measurementModel.findOrCreate({
-        where: { userId, date },
-        defaults: { userId, date, weight: s.value } as Partial<BodyMeasurement>,
-      });
-      if (!created) {
-        row.weight = s.value;
-        await row.save();
-      } else {
-        this.events.emit(MeasurementEvents.Created, {
-          userId,
-          measurementId: row.id,
-          date,
-        } satisfies MeasurementCreatedPayload);
-      }
-      count += 1;
-    }
-    return count;
   }
 
   private async upsertSamples(

@@ -65,16 +65,15 @@ export class HealthWorkoutDto {
 /**
  * Payload the iOS Shortcut POSTs to /api/sync/apple-health/ingest.
  * All arrays optional — the Shortcut only includes metrics the
- * athlete approved via HealthKit permissions. Body-mass samples
- * flow into BodyMeasurement; the rest land in HealthSamples.
+ * athlete approved via HealthKit permissions. Scalar metrics land
+ * in HealthSamples, workouts in ActivitySamples.
+ *
+ * Note: bodyweight is intentionally NOT pulled from HealthKit —
+ * the athlete logs it manually in the Mini App measurement flow,
+ * pulling again from Apple would cause dupe rows and last-writer-
+ * wins races across the two entry paths.
  */
 export class AppleHealthIngestDto {
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => HealthSampleDto)
-  weights?: HealthSampleDto[];
-
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
