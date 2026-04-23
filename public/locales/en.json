@@ -186,9 +186,9 @@
       "manual_title": "How to set up",
       "step1": "Copy the token above (tap \"Copy\"). Then tap \"Open Shortcut in iCloud\" — Telegram will hand off to Safari, Safari opens Shortcuts.app.",
       "step2": "In Shortcuts.app tap \"Set Up Shortcut\" on the import preview. When iOS prompts for the \"Token\" input, paste the one you copied.",
-      "step3": "Run the Shortcut once. iOS will ask for HealthKit permissions — allow access to Body Mass, Sleep, Heart Rate, HRV, Active Energy, and Workouts.",
-      "step4": "Optionally create an Automation (Shortcuts → Automation → Time of Day → 8:00 AM daily → Run Shortcut → GymBo Sync) to sync in the background.",
-      "step5": "Data appears in GymBo within seconds of the sync. Disconnect anytime to revoke the token."
+      "step3": "Open iPhone Settings → Shortcuts → Advanced and enable \"Allow Sharing Large Amounts of Data\". Without this iOS blocks the health export and the Shortcut will fail.",
+      "step4": "Run the Shortcut once. iOS will ask whether to share health data — tap \"Always Allow\" so it doesn't re-prompt on every sync.",
+      "step5": "Optionally add an Automation (Shortcuts → Automation → Time of Day → 8:00 AM daily → Run Shortcut → GymBo Sync) to sync in the background. Data appears in GymBo within seconds; disconnect anytime to revoke the token."
     },
     "strava": {
       "name": "Strava",

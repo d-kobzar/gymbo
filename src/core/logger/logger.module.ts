@@ -4,6 +4,23 @@ import { IncomingMessage } from 'http';
 import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'crypto';
 
+const BODY_LOG_CAP = 16 * 1024;
+
+function truncateBodyForLog(body: unknown): unknown {
+  if (body == null) return undefined;
+  try {
+    const s = typeof body === 'string' ? body : JSON.stringify(body);
+    if (s.length <= BODY_LOG_CAP) return body;
+    return {
+      _truncated: true,
+      length: s.length,
+      preview: s.slice(0, BODY_LOG_CAP),
+    };
+  } catch {
+    return '[unserializable]';
+  }
+}
+
 @Module({
   imports: [
     PinoLoggerModule.forRootAsync({
@@ -31,6 +48,10 @@ import { randomUUID } from 'crypto';
                 'req.headers.authorization',
                 'req.headers.cookie',
                 'req.headers["x-telegram-bot-api-secret-token"]',
+                'req.headers["x-api-key"]',
+                'req.body.token',
+                'req.body.password',
+                'req.body.secret',
                 '*.password',
                 '*.token',
                 '*.secret',
@@ -38,11 +59,15 @@ import { randomUUID } from 'crypto';
               censor: '[redacted]',
             },
             serializers: {
-              req: (req: Record<string, unknown>) => ({
-                id: req.id,
-                method: req.method,
-                url: req.url,
-              }),
+              req: (req: Record<string, unknown>) => {
+                const raw = (req as { raw?: { body?: unknown } }).raw;
+                return {
+                  id: req.id,
+                  method: req.method,
+                  url: req.url,
+                  body: truncateBodyForLog(raw?.body),
+                };
+              },
               res: (res: Record<string, unknown>) => ({
                 statusCode: res.statusCode,
               }),
@@ -55,7 +80,7 @@ import { randomUUID } from 'crypto';
                     colorize: true,
                     singleLine: true,
                     translateTime: 'SYS:HH:MM:ss.l',
-                    ignore: 'pid,hostname,req,res,responseTime,requestId',
+                    ignore: 'pid,hostname,res,responseTime,requestId',
                   },
                 },
           },
