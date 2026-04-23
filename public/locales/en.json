@@ -155,6 +155,48 @@
     "welcome": "Hi! I'm your AI fitness coach. Ask me anything about your training.",
     "error": "Sorry, something went wrong. Try again."
   },
+  "sync": {
+    "title": "Sync",
+    "subtitle": "Pull data from Apple Health, Strava, and Garmin into your training log.",
+    "settings_row": "Sync",
+    "settings_row_sub": "Apple Health · Strava · Garmin",
+    "connected": "Connected",
+    "not_connected": "Not connected",
+    "coming_soon": "Coming soon",
+    "copy": "Copy",
+    "copied": "Copied to clipboard",
+    "apple_health": {
+      "name": "Apple Health",
+      "description": "Pull weight, sleep, resting HR, HRV, and workouts from your iPhone and Apple Watch via an iOS Shortcut.",
+      "title": "Connect Apple Health",
+      "connect": "Generate connection token",
+      "disconnect": "Disconnect",
+      "disconnect_confirm": "Disconnect Apple Health? Your Shortcut will stop working.",
+      "rotate": "Generate new token",
+      "rotate_note": "You're connected, but the token is only shown at the moment it's created. Generate a new one to set up or re-paste in your Shortcut.",
+      "open_shortcut": "Open Shortcut in iCloud",
+      "token_label": "Connection token",
+      "endpoint_label": "Ingest URL",
+      "last_sync": "Last sync",
+      "never_synced": "never",
+      "connected_toast": "Connection ready — paste the token into the Shortcut.",
+      "disconnected_toast": "Apple Health disconnected",
+      "manual_title": "How to set up",
+      "step1": "Open the Shortcut link below on your iPhone and tap 'Set Up Shortcut' in the Shortcuts app.",
+      "step2": "Paste the connection token (copy it with the button above) into the Token field.",
+      "step3": "Run the Shortcut once. iOS will ask for HealthKit permissions — allow access to Body Mass, Sleep, Heart Rate and Workouts.",
+      "step4": "Optionally create an Automation (Shortcuts → Automation → Time of Day → 8:00 AM daily) to sync in the background.",
+      "step5": "Data appears in GymBo within seconds of the sync. Disconnect anytime to revoke the token."
+    },
+    "strava": {
+      "name": "Strava",
+      "description": "Coming soon — connect your Strava account to import running, cycling, and rowing sessions."
+    },
+    "garmin": {
+      "name": "Garmin",
+      "description": "Coming soon — Garmin Connect OAuth for full-day wearable metrics."
+    }
+  },
   "rest": {
     "title": "REST",
     "skip": "Skip",

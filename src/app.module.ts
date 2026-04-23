@@ -29,6 +29,7 @@ import { BackupModule } from '@modules/backup/backup.module';
 import { NotificationsModule } from '@modules/notifications/notifications.module';
 import { BotModule } from '@modules/bot/bot.module';
 import { AiCoachModule } from '@modules/ai-coach/ai-coach.module';
+import { SyncModule } from '@modules/sync/sync.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { AiCoachModule } from '@modules/ai-coach/ai-coach.module';
     NotificationsModule,
     BotModule,
     AiCoachModule,
+    SyncModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

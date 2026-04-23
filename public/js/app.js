@@ -30,6 +30,8 @@ import { ProgramEditorPage } from './pages/program-editor.page.js';
 import { MeasurementsPage } from './pages/measurements.page.js';
 import { ExercisesPage } from './pages/exercises.page.js';
 import { SettingsPage } from './pages/settings.page.js';
+import { SyncPage } from './pages/sync.page.js';
+import { SyncAppleHealthPage } from './pages/sync-apple-health.page.js';
 import { MorePage } from './pages/more.page.js';
 import { OnboardingPage } from './pages/onboarding.page.js';
 import { StartFirstPage } from './pages/start-first.page.js';
@@ -157,6 +159,8 @@ function mountShell() {
   router.register('/measurements', mountPage(MeasurementsPage));
   router.register('/exercises', mountPage(ExercisesPage));
   router.register('/settings', mountPage(SettingsPage));
+  router.register('/sync', mountPage(SyncPage));
+  router.register('/sync/apple-health', mountPage(SyncAppleHealthPage));
   router.register('/more', mountPage(MorePage));
   router.register('/profile/edit', mountProfileEdit);
   router.start();

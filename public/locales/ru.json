@@ -155,6 +155,48 @@
     "welcome": "Привет! Я ваш AI-тренер. Спрашивайте про тренировки.",
     "error": "Извините, что-то пошло не так. Попробуйте ещё."
   },
+  "sync": {
+    "title": "Синхронизация",
+    "subtitle": "Подтягивай данные из Apple Health, Strava и Garmin в журнал тренировок.",
+    "settings_row": "Синхронизация",
+    "settings_row_sub": "Apple Health · Strava · Garmin",
+    "connected": "Подключено",
+    "not_connected": "Не подключено",
+    "coming_soon": "Скоро",
+    "copy": "Копировать",
+    "copied": "Скопировано в буфер",
+    "apple_health": {
+      "name": "Apple Health",
+      "description": "Подтягивай вес, сон, пульс покоя, HRV и тренировки с iPhone и Apple Watch через iOS Shortcut.",
+      "title": "Подключить Apple Health",
+      "connect": "Сгенерировать токен",
+      "disconnect": "Отключить",
+      "disconnect_confirm": "Отключить Apple Health? Shortcut перестанет работать.",
+      "rotate": "Сгенерировать новый токен",
+      "rotate_note": "Подключение активно, но токен показывается только в момент выпуска. Сгенерируй новый, чтобы настроить или обновить его в Shortcut.",
+      "open_shortcut": "Открыть Shortcut в iCloud",
+      "token_label": "Токен подключения",
+      "endpoint_label": "URL эндпоинта",
+      "last_sync": "Последняя синхронизация",
+      "never_synced": "ещё не было",
+      "connected_toast": "Токен готов — вставь его в Shortcut.",
+      "disconnected_toast": "Apple Health отключён",
+      "manual_title": "Как настроить",
+      "step1": "Открой ссылку на Shortcut ниже с iPhone и нажми 'Set Up Shortcut' в приложении Shortcuts.",
+      "step2": "Вставь токен (кнопкой выше скопируй в буфер) в поле Token.",
+      "step3": "Запусти Shortcut первый раз. iOS запросит доступ к HealthKit — разреши к весу, сну, пульсу и тренировкам.",
+      "step4": "Опционально настрой Automation (Shortcuts → Automation → Time of Day → 8:00 ежедневно), чтобы данные приходили сами.",
+      "step5": "Данные появляются в GymBo через секунды после синка. В любой момент можно отключить — токен перестанет работать."
+    },
+    "strava": {
+      "name": "Strava",
+      "description": "Скоро — подключи Strava, чтобы импортировать бег, велосипед и греблю."
+    },
+    "garmin": {
+      "name": "Garmin",
+      "description": "Скоро — OAuth в Garmin Connect, полный набор метрик с часов."
+    }
+  },
   "rest": {
     "title": "ОТДЫХ",
     "skip": "Пропустить",
