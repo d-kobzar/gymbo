@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GymBo Apple Health sync — iOS Shortcut template.
+
+  This file is served (with per-user token substituted) via
+  GET /api/sync/apple-health/shortcut?t=<token>. iOS Shortcuts.app
+  accepts XML plists directly on import, so we patch the two
+  placeholders at request time and hand the bytes over.
+
+  Placeholders (string-level, substituted server-side):
+    __INGEST_URL__ — POST target, e.g.
+                     https://gymbo-prod.herokuapp.com/api/sync/apple-health/ingest
+    __TOKEN__      — long-lived bearer that the athlete's connect
+                     call returned (SyncConnections.token).
+
+  REAL TEMPLATE TO USE:
+    Build a full HealthKit-aware Shortcut in Shortcuts.app (actions:
+    Find Health Samples for Body Mass, Sleep, Resting HR, HRV,
+    Active Energy, Steps + Find Workouts + build a Dictionary and
+    POST via Get Contents of URL), export it, then run
+      plutil -convert xml1 gymbo-sync.shortcut -o new-template.xml
+    and replace the XML below with the result. Keep the two
+    placeholders for the URL and the token.
+
+  The stub below is a valid minimal shortcut that performs a single
+  POST ping to the ingest URL with "Authorization: Bearer <token>"
+  and shows a notification. Enough to verify the install pipeline
+  before the dev replaces it with the real HealthKit-heavy version.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>WFWorkflowActions</key>
+    <array>
+        <dict>
+            <key>WFWorkflowActionIdentifier</key>
+            <string>is.workflow.actions.dictionary</string>
+            <key>WFWorkflowActionParameters</key>
+            <dict>
+                <key>WFItems</key>
+                <dict>
+                    <key>Value</key>
+                    <dict>
+                        <key>WFDictionaryFieldValueItems</key>
+                        <array>
+                            <dict>
+                                <key>WFItemType</key>
+                                <integer>0</integer>
+                                <key>WFKey</key>
+                                <dict>
+                                    <key>Value</key>
+                                    <dict>
+                                        <key>string</key>
+                                        <string>ping</string>
+                                    </dict>
+                                    <key>WFSerializationType</key>
+                                    <string>WFTextTokenString</string>
+                                </dict>
+                                <key>WFValue</key>
+                                <dict>
+                                    <key>Value</key>
+                                    <dict>
+                                        <key>string</key>
+                                        <string>true</string>
+                                    </dict>
+                                    <key>WFSerializationType</key>
+                                    <string>WFTextTokenString</string>
+                                </dict>
+                            </dict>
+                        </array>
+                    </dict>
+                    <key>WFSerializationType</key>
+                    <string>WFDictionaryFieldValue</string>
+                </dict>
+            </dict>
+        </dict>
+        <dict>
+            <key>WFWorkflowActionIdentifier</key>
+            <string>is.workflow.actions.downloadurl</string>
+            <key>WFWorkflowActionParameters</key>
+            <dict>
+                <key>WFHTTPBodyType</key>
+                <string>JSON</string>
+                <key>WFHTTPHeaders</key>
+                <dict>
+                    <key>Value</key>
+                    <dict>
+                        <key>WFDictionaryFieldValueItems</key>
+                        <array>
+                            <dict>
+                                <key>WFItemType</key>
+                                <integer>0</integer>
+                                <key>WFKey</key>
+                                <dict>
+                                    <key>Value</key>
+                                    <dict>
+                                        <key>string</key>
+                                        <string>Authorization</string>
+                                    </dict>
+                                    <key>WFSerializationType</key>
+                                    <string>WFTextTokenString</string>
+                                </dict>
+                                <key>WFValue</key>
+                                <dict>
+                                    <key>Value</key>
+                                    <dict>
+                                        <key>string</key>
+                                        <string>Bearer __TOKEN__</string>
+                                    </dict>
+                                    <key>WFSerializationType</key>
+                                    <string>WFTextTokenString</string>
+                                </dict>
+                            </dict>
+                        </array>
+                    </dict>
+                    <key>WFSerializationType</key>
+                    <string>WFDictionaryFieldValue</string>
+                </dict>
+                <key>WFHTTPMethod</key>
+                <string>POST</string>
+                <key>WFURL</key>
+                <string>__INGEST_URL__</string>
+            </dict>
+        </dict>
+        <dict>
+            <key>WFWorkflowActionIdentifier</key>
+            <string>is.workflow.actions.notification</string>
+            <key>WFWorkflowActionParameters</key>
+            <dict>
+                <key>WFNotificationActionBody</key>
+                <string>GymBo synced with Apple Health</string>
+                <key>WFNotificationActionTitle</key>
+                <string>GymBo</string>
+            </dict>
+        </dict>
+    </array>
+    <key>WFWorkflowClientRelease</key>
+    <string>2.1.2</string>
+    <key>WFWorkflowClientVersion</key>
+    <string>754</string>
+    <key>WFWorkflowIcon</key>
+    <dict>
+        <key>WFWorkflowIconGlyphNumber</key>
+        <integer>59511</integer>
+        <key>WFWorkflowIconStartColor</key>
+        <integer>-1954934529</integer>
+    </dict>
+    <key>WFWorkflowImportQuestions</key>
+    <array/>
+    <key>WFWorkflowInputContentItemClasses</key>
+    <array>
+        <string>WFAppStoreAppContentItem</string>
+        <string>WFArticleContentItem</string>
+        <string>WFContactContentItem</string>
+        <string>WFDateContentItem</string>
+        <string>WFEmailAddressContentItem</string>
+        <string>WFGenericFileContentItem</string>
+        <string>WFImageContentItem</string>
+        <string>WFiTunesProductContentItem</string>
+        <string>WFLocationContentItem</string>
+        <string>WFMKMapItemContentItem</string>
+        <string>WFPDFContentItem</string>
+        <string>WFPhoneNumberContentItem</string>
+        <string>WFRichTextContentItem</string>
+        <string>WFSafariWebPageContentItem</string>
+        <string>WFStringContentItem</string>
+        <string>WFURLContentItem</string>
+    </array>
+    <key>WFWorkflowTypes</key>
+    <array>
+        <string>WatchKit</string>
+    </array>
+</dict>
+</plist>

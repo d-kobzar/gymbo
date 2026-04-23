@@ -170,9 +170,22 @@ export class SyncAppleHealthPage extends Page {
       ),
     );
 
+    // Preferred install path: direct import via the URL scheme with
+    // the server-patched .shortcut file (token already baked in).
+    const installUrl = this.installShortcutUrl();
+    if (installUrl) {
+      const installBtn = Page.el('a', {
+        className: 'button button--primary button--lg button--block',
+        text: i18n.t('sync.apple_health.install_shortcut'),
+      });
+      installBtn.setAttribute('href', installUrl);
+      wrap.append(installBtn);
+    }
+
+    // Alternative: plain iCloud link if the dev published one.
     if (this.shortcutUrl) {
       const openBtn = Page.el('a', {
-        className: 'button button--primary button--lg button--block',
+        className: 'button button--secondary button--block',
         text: i18n.t('sync.apple_health.open_shortcut'),
       });
       openBtn.setAttribute('href', this.shortcutUrl);
@@ -221,6 +234,14 @@ export class SyncAppleHealthPage extends Page {
       });
     }
     return field;
+  }
+
+  /** Build the shortcuts://import-shortcut URL that causes iOS to
+   * fetch our server-patched .shortcut and show the import dialog. */
+  installShortcutUrl() {
+    if (!this.token) return null;
+    const fileUrl = `${globalThis.location.origin}/api/sync/apple-health/shortcut?t=${encodeURIComponent(this.token)}`;
+    return `shortcuts://import-shortcut/?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent('GymBo Sync')}`;
   }
 
   renderDisconnectBtn() {

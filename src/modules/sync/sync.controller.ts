@@ -3,18 +3,25 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Post,
+  Query,
   Req,
+  Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
+import { InjectModel } from '@nestjs/sequelize';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { Raw } from '@shared/decorators/raw-response.decorator';
 import { CurrentUser } from '@shared/decorators/current-user.decorator';
 import { AppleHealthIngestDto } from './dto/apple-health-ingest.dto';
 import { SyncTokenGuard, SYNC_USER_KEY } from './guards/sync-token.guard';
-import type { SyncProvider } from './models/sync-connection.model';
+import { SyncConnection, type SyncProvider } from './models/sync-connection.model';
 import { AppleHealthService } from './services/apple-health.service';
+import { ShortcutBuilderService } from './services/shortcut-builder.service';
 
 /**
  * /sync endpoints.
@@ -32,6 +39,9 @@ export class SyncController {
   constructor(
     private readonly appleHealth: AppleHealthService,
     private readonly config: ConfigService,
+    private readonly shortcutBuilder: ShortcutBuilderService,
+    @InjectModel(SyncConnection)
+    private readonly connectionModel: typeof SyncConnection,
   ) {}
 
   @Get('status')
@@ -75,5 +85,46 @@ export class SyncController {
     if (!ctx) return { ok: false };
     const counts = await this.appleHealth.ingest(ctx.userId, dto);
     return { ok: true, counts };
+  }
+
+  /**
+   * Serve the iOS Shortcut file with the user's token pre-baked in.
+   *
+   * Called by iOS itself via the `shortcuts://import-shortcut/?url=…`
+   * scheme — which means no JWT header is available, so auth rides
+   * on the ?t= query parameter (the long-lived Apple Health bearer
+   * we already minted). If the token leaks, only that user's data
+   * is exposed; the token is also embedded in the file the user
+   * will install, so in-URL is no worse than in-file.
+   */
+  @Get('apple-health/shortcut')
+  @Raw()
+  async appleHealthShortcut(
+    @Query('t') tokenQuery: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const token = (tokenQuery ?? '').trim();
+    if (!token) throw new UnauthorizedException('Missing token');
+    const connection = await this.connectionModel.findOne({
+      where: { token, revokedAt: null, provider: 'apple_health' },
+    });
+    if (!connection) throw new NotFoundException('Shortcut not available');
+
+    const appUrl =
+      this.config.get<string>('APP_URL') ?? `${req.protocol}://${req.get('host')}`;
+    const ingestUrl = `${appUrl.replace(/\/+$/, '')}/api/sync/apple-health/ingest`;
+
+    const body = this.shortcutBuilder.build({ token, ingestUrl });
+
+    res
+      .status(200)
+      .setHeader('Content-Type', 'application/x-apple-shortcut; charset=utf-8')
+      .setHeader(
+        'Content-Disposition',
+        'attachment; filename="gymbo-sync.shortcut"',
+      )
+      .setHeader('Cache-Control', 'no-store')
+      .send(body);
   }
 }
